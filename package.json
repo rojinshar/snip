@@ -9,7 +9,7 @@
     "apps/*"
   ],
   "engines": {
-    "node": ">=20.12"
+    "node": ">=22"
   },
   "scripts": {
     "typecheck": "tsc -b && npm run typecheck --workspace @snip/web",

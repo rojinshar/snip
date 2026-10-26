@@ -37,7 +37,8 @@ stored in `waitlist_signups.source`. Use lowercase letters, digits and dashes.
 
 ## Deploy (Cloudflare)
 
-Wrangler needs Node.js 22+.
+Wrangler needs Node.js 22+ (the repo's `.nvmrc`). For local secrets used by `npm run preview`,
+copy `DATABASE_URL` into `apps/web/.dev.vars` (git-ignored).
 
 ```sh
 cd apps/web

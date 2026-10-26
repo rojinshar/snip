@@ -22,7 +22,7 @@ packages/
 
 ## Requirements
 
-- Node.js 20.12+ (`nvm use`)
+- Node.js 22+ (`nvm use`; Cloudflare's wrangler requires 22)
 - npm 10+
 
 ## Getting started
