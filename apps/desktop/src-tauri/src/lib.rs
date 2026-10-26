@@ -35,6 +35,9 @@ fn snip_shortcut() -> Shortcut {
 struct SnipState {
     /// Prevents a second snip from starting while one is in progress.
     busy: AtomicBool,
+    /// System Settings is opened at most once per launch, so a missing permission can't
+    /// turn every hotkey press into another trip to Settings.
+    opened_permission_settings: AtomicBool,
     api: ApiClient,
 }
 
@@ -76,6 +79,7 @@ pub fn run() {
         )
         .manage(SnipState {
             busy: AtomicBool::new(false),
+            opened_permission_settings: AtomicBool::new(false),
             api: ApiClient::from_env(),
         })
         .setup(|app| {
@@ -116,8 +120,13 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
         true,
         Some("CmdOrCtrl+Shift+2"),
     )?;
+    // macOS only applies a new Screen Recording grant after the app relaunches.
+    let restart = MenuItem::with_id(app, "restart", "Restart Snip", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit Snip", true, Some("CmdOrCtrl+Q"))?;
-    let menu = Menu::with_items(app, &[&snip, &PredefinedMenuItem::separator(app)?, &quit])?;
+    let menu = Menu::with_items(
+        app,
+        &[&snip, &PredefinedMenuItem::separator(app)?, &restart, &quit],
+    )?;
 
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(Image::from_bytes(include_bytes!(
@@ -129,6 +138,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
         .show_menu_on_left_click(true)
         .on_menu_event(|app, event| match event.id().as_ref() {
             "snip" => start_snip(app.clone()),
+            "restart" => app.restart(),
             "quit" => app.exit(0),
             _ => {}
         })
@@ -145,7 +155,12 @@ fn start_snip(app: AppHandle) {
     std::thread::spawn(move || {
         let result = run_snip(&app);
         log::info!("snip result: {result:?}");
-        if result == SnipResult::NeedsPermission {
+        if result == SnipResult::NeedsPermission
+            && !app
+                .state::<SnipState>()
+                .opened_permission_settings
+                .swap(true, Ordering::SeqCst)
+        {
             let _ = Command::new("open")
                 .arg(permissions::SCREEN_RECORDING_SETTINGS_URL)
                 .status();
@@ -260,7 +275,7 @@ fn notification_for(result: &SnipResult) -> Option<(String, String)> {
         SnipResult::Copied { text } => message("Copied to clipboard", &preview(text, 80)),
         SnipResult::NeedsPermission => message(
             "Snip needs Screen Recording access",
-            "Enable Snip in System Settings → Privacy & Security → Screen Recording, then try again.",
+            "Turn on Snip in Privacy & Security → Screen Recording, then choose Restart Snip from the ∫ menu.",
         ),
         SnipResult::Failed(Failure::Api(ApiError::Server { code, .. })) => match code.as_str() {
             "no_math_found" => message("No equation found", "Try selecting just the equation."),
@@ -359,7 +374,9 @@ mod tests {
     fn permission_message_points_to_settings() {
         let (title, body) = notification_for(&SnipResult::NeedsPermission).unwrap();
         assert!(title.contains("Screen Recording"));
-        assert!(body.contains("System Settings"));
+        assert!(body.contains("Screen Recording"));
+        // A grant only takes effect after a relaunch, so the message must say so.
+        assert!(body.contains("Restart Snip"));
     }
 
     #[test]

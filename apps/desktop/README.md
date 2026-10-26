@@ -55,9 +55,12 @@ incomplete and macOS can refuse to open it from Finder. Because the signature is
 
 - **First launch:** macOS may say it can't verify the developer. Open **System Settings →
   Privacy & Security** and click **Open Anyway**.
-- **Screen Recording:** the first snip asks for permission. Enable Snip under **Privacy &
-  Security → Screen Recording**. Rebuilds change the ad-hoc signature, so macOS may ask
-  again after each rebuild; signing fixes this in a later phase.
+- **Screen Recording:** the first snip asks for permission. Turn on Snip under **Privacy &
+  Security → Screen Recording**, then choose **Restart Snip** from the ∫ menu. macOS only
+  applies the grant after a relaunch. Each rebuild changes the ad-hoc signature, so after
+  installing a new build, reset the old grant with
+  `tccutil reset ScreenCapture io.github.rojinshar.snip` and grant it again. Signing with a
+  Developer ID in a later phase makes the grant survive updates.
 - **`npm run dev:desktop`:** in development, macOS attributes Screen Recording to the
   terminal app that started it (Terminal, iTerm or VS Code), so grant it there.
 
