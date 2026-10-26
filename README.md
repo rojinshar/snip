@@ -14,7 +14,7 @@ apps/
   bench/    accuracy, latency and cost benchmark for the engines
   web/      Next.js landing page + waitlist (Cloudflare, Neon); later sign-in and billing
   api/      (planned) Express: auth, snip quotas, Stripe, serves OCR via the engine
-  desktop/  (planned) Tauri hotkey capture app
+  desktop/  Tauri macOS menu-bar app (M1: hotkey + region capture)
   unimernet-server/  Python: self-hosted UniMERNet model served over HTTP
 packages/
   engine/   OCR engines (Gemini, Mathpix), model router, LaTeX validation and scoring

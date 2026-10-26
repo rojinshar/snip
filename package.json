@@ -22,7 +22,9 @@
     "bench": "npm run start --workspace @snip/bench --",
     "bench:import-unimer": "npm run import:unimer --workspace @snip/bench --",
     "bench:rescore": "npm run rescore --workspace @snip/bench --",
-    "dev:web": "npm run dev --workspace @snip/web"
+    "dev:web": "npm run dev --workspace @snip/web",
+    "dev:desktop": "npm run dev --workspace @snip/desktop",
+    "build:desktop": "npm run build --workspace @snip/desktop"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

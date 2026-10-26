@@ -16,6 +16,8 @@ export default tseslint.config(
       '**/.open-next/**',
       '**/.wrangler/**',
       '**/next-env.d.ts',
+      '**/src-tauri/target/**',
+      '**/src-tauri/gen/**',
     ],
   },
   js.configs.recommended,

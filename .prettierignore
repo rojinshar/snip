@@ -9,3 +9,5 @@ results
 next-env.d.ts
 .venv
 apps/unimernet-server/models
+apps/desktop/src-tauri/target
+apps/desktop/src-tauri/gen
