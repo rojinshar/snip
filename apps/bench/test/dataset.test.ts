@@ -63,7 +63,7 @@ describe('loadDataset', () => {
       '{not json',
       entry({ id: 'c', image: 'missing.png' }),
       entry({ id: 'd', image: 'a.gif' }),
-      entry({ id: 'e', category: 'typed' }),
+      entry({ id: 'e', category: 'Hand Written' }),
     ]);
 
     const error = await loadDataset(file).catch((e: unknown) => e);

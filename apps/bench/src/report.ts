@@ -1,7 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { CATEGORIES } from './dataset.ts';
 import type { EngineSummary } from './metrics.ts';
 import type { SampleResult } from './runner.ts';
 
@@ -117,14 +116,15 @@ export function renderSummaryTable(summaries: readonly EngineSummary[]): string 
 }
 
 function renderCategoryTable(summaries: readonly EngineSummary[]): string {
+  const categories = [...new Set(summaries.flatMap((summary) => Object.keys(summary.byCategory)))];
   const rows = summaries.map((summary) => [
     summary.engine,
-    ...CATEGORIES.map((category) => {
+    ...categories.map((category) => {
       const stats = summary.byCategory[category];
       return stats ? `${pct(stats.renderMatchRate)} (n=${stats.samples})` : '-';
     }),
   ]);
-  return table(['Engine', ...CATEGORIES], rows);
+  return table(['Engine', ...categories], rows);
 }
 
 function parity(rate: number, reference: number): string {

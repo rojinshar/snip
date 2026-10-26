@@ -48,7 +48,7 @@ describe('summarize', () => {
     expect(lite?.costPerSnipUsd).toBeCloseTo(0.002);
     expect(lite?.byCategory.printed?.exactMatchRate).toBe(1);
     expect(lite?.byCategory.handwritten?.exactMatchRate).toBe(0);
-    expect(lite?.byCategory.multiline).toBeUndefined();
+    expect(Object.keys(lite?.byCategory ?? {})).toEqual(['printed', 'handwritten']);
   });
 
   it('caps edit distance at 1 so one garbage output cannot dominate the mean', () => {

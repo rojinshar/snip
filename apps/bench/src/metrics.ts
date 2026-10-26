@@ -1,4 +1,3 @@
-import { CATEGORIES, type Category } from './dataset.ts';
 import type { EngineName } from './engines.ts';
 import type { SampleResult } from './runner.ts';
 
@@ -17,7 +16,8 @@ export interface EngineSummary extends AccuracyStats {
   readonly latencyP95Ms: number;
   readonly totalCostUsd: number;
   readonly costPerSnipUsd: number;
-  readonly byCategory: Partial<Record<Category, AccuracyStats>>;
+  /** Keyed by category, in order of first appearance in the dataset. */
+  readonly byCategory: Readonly<Record<string, AccuracyStats>>;
 }
 
 export function summarize(results: readonly SampleResult[]): EngineSummary[] {
@@ -26,11 +26,12 @@ export function summarize(results: readonly SampleResult[]): EngineSummary[] {
   return [...byEngine].map(([engine, rows]) => {
     const latencies = rows.map((row) => row.latencyMs);
     const totalCostUsd = sum(rows.map((row) => row.costUsd));
-    const byCategory: Partial<Record<Category, AccuracyStats>> = {};
-    for (const category of CATEGORIES) {
-      const subset = rows.filter((row) => row.category === category);
-      if (subset.length > 0) byCategory[category] = accuracy(subset);
-    }
+    const byCategory = Object.fromEntries(
+      [...groupBy(rows, (row) => row.category)].map(([category, subset]) => [
+        category,
+        accuracy(subset),
+      ]),
+    );
 
     return {
       engine,

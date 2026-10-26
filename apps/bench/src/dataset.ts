@@ -4,8 +4,8 @@ import path from 'node:path';
 import type { ImageMimeType, OcrImage } from '@snip/engine';
 import { z } from 'zod';
 
-export const CATEGORIES = ['printed', 'handwritten', 'multiline'] as const;
-export type Category = (typeof CATEGORIES)[number];
+/** Lowercase slug, e.g. `printed` or `handwritten`. Each dataset defines its own set. */
+const CATEGORY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const MIME_BY_EXTENSION: Readonly<Record<string, ImageMimeType>> = {
   '.png': 'image/png',
@@ -20,17 +20,19 @@ const manifestEntrySchema = z.object({
   image: z.string().min(1),
   /** Ground-truth LaTeX, without math delimiters. */
   latex: z.string().min(1),
-  category: z.enum(CATEGORIES),
+  category: z.string().regex(CATEGORY_PATTERN, 'must be a lowercase slug, e.g. "handwritten"'),
   /** Free-text provenance, e.g. "Griffiths QM 2.3". */
   source: z.string().optional(),
 });
+
+export type ManifestEntry = z.input<typeof manifestEntrySchema>;
 
 export interface Sample {
   readonly id: string;
   readonly imagePath: string;
   readonly mimeType: ImageMimeType;
   readonly latex: string;
-  readonly category: Category;
+  readonly category: string;
 }
 
 export class DatasetError extends Error {
