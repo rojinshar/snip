@@ -20,6 +20,10 @@ packages/
   engine/   OCR engines (Gemini, Mathpix), model router, LaTeX validation and scoring
 ```
 
+## Design docs
+
+- [Desktop app v0](docs/desktop-v0.md)
+
 ## Requirements
 
 - Node.js 22+ (`nvm use`; Cloudflare's wrangler requires 22)
