@@ -1,6 +1,6 @@
 # Snip desktop app v0: design
 
-- **Status:** draft for review
+- **Status:** accepted
 - **Author:** Rojin Sharma
 - **Last updated:** 2026-10-26
 
@@ -33,7 +33,6 @@ Windows, a hosted API, Typst/MathML output, and PDF-page conversion. Each is a l
 3. A "Reading…" indicator shows in the menu bar.
 4. LaTeX is copied to the clipboard, wrapped in the user's chosen delimiters, and a short
    notification confirms it ("Copied: `\int_0^1 x^2\,dx`").
-5. The menu-bar menu lists the last 10 snips, each one click to copy again.
 
 ## 4. Architecture
 
@@ -41,7 +40,7 @@ Windows, a hosted API, Typst/MathML output, and PDF-page conversion. Each is a l
 ┌─────────────── apps/desktop (Tauri 2) ───────────────┐      ┌──── apps/api (Express) ────┐
 │ Rust core                       Web UI (React/Vite)   │      │ POST /v1/recognize          │
 │  • tray icon + menu (no Dock)    • settings window    │ HTTP │  • validate image           │
-│  • global shortcut               • history list       │ ───► │  • @snip/engine (Gemini)    │──► Gemini 3.5
+│  • global shortcut                                    │ ───► │  • @snip/engine (Gemini)    │──► Gemini 3.5
 │  • capture via screencapture -i                       │      │  • KaTeX render check       │    Flash-Lite
 │  • clipboard + notifications                          │ ◄─── │  { latex, engine, ms }      │
 │  • settings store                                     │      │ Gemini key lives here only  │
@@ -68,7 +67,7 @@ benchmarked and tested. The API is a thin HTTP layer over it.
 | Clipboard      | `tauri-plugin-clipboard-manager`          | Text only                                                         |
 | Notifications  | `tauri-plugin-notification`               | Success and errors                                                |
 | Settings       | `tauri-plugin-store` (JSON in app data)   | Hotkey, delimiters, API URL                                       |
-| UI             | React + Vite + TypeScript                 | Settings window and history only; the tray menu is native         |
+| UI             | React + Vite + TypeScript                 | Settings window only; the tray menu is native                     |
 
 **Screen Recording permission.** Without it, macOS captures only the wallpaper and our own
 windows. On first use the app checks with `CGPreflightScreenCaptureAccess`. If access is
@@ -82,14 +81,14 @@ edge to at most 2000 px, which is ample for equations and keeps uploads small.
 
 ### 5.2 `apps/api`
 
-| Concern    | Choice                                                                      |
-| ---------- | --------------------------------------------------------------------------- |
-| Framework  | Express + TypeScript (`tsx` in dev)                                         |
-| Body       | Raw image bytes (`image/png` or `image/jpeg`), up to 10 MB                  |
-| Engine     | `@snip/engine` Gemini 3.5 Flash-Lite with an 8 s timeout and 1 retry        |
-| Validation | KaTeX render check: invalid LaTeX is never returned                         |
-| Config     | `GEMINI_API_KEY`, `PORT` (default 8790), from the root `.env`               |
-| Logging    | One structured JSON line per request: id, status, ms, engine; no image data |
+| Concern    | Choice                                                                                                                                                |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework  | Express + TypeScript (`tsx` in dev)                                                                                                                   |
+| Body       | Raw image bytes (`image/png` or `image/jpeg`), up to 10 MB                                                                                            |
+| Engine     | `@snip/engine` router: Gemini 3.5 Flash-Lite, falling back to 3.8 Flash only when the output fails the KaTeX check; 8 s timeout and 1 retry per model |
+| Validation | KaTeX render check: invalid LaTeX is never returned                                                                                                   |
+| Config     | `GEMINI_API_KEY`, `PORT` (default 8790), from the root `.env`                                                                                         |
+| Logging    | One structured JSON line per request: id, status, ms, engine; no image data                                                                           |
 
 **API contract (v0):**
 
@@ -164,17 +163,18 @@ Each milestone is one branch and one PR-sized change, merged when checks pass an
 | M2  | `apps/api` `POST /v1/recognize` over `@snip/engine`, with tests        | Server side works in isolation  |
 | M3  | Wire the app to the API: clipboard, notifications, step timings        | End-to-end flow and latency     |
 | M4  | `.dmg` build and install from it; QA checklist pass                    | Ships like a real app           |
-| M5  | Settings window (hotkey, delimiters) and history menu                  | Daily-use polish                |
+| M5  | Settings window (hotkey, delimiters)                                   | Daily-use polish                |
 
 ## 11. Later phases (out of scope here)
 
-1. **Accounts and quotas:** sign-in (magic link), API tokens per device, 200 free snips a
+1. **Recent-snip history:** the last snips in the menu-bar menu, one click to copy again.
+2. **Accounts and quotas:** sign-in (magic link), API tokens per device, 200 free snips a
    month in Postgres.
-2. **Hosting the API:** deploy `apps/api` (the hosting choice is made then); the app points
+3. **Hosting the API:** deploy `apps/api` (the hosting choice is made then); the app points
    at the hosted URL.
-3. **Payments:** Stripe checkout and webhooks; plans enforced in the API.
-4. **Distribution:** Apple Developer Program, signing, notarization, auto-update.
-5. **Windows:** custom region-select overlay, since there is no `screencapture` equivalent.
+4. **Payments:** Stripe checkout and webhooks; plans enforced in the API.
+5. **Distribution:** Apple Developer Program, signing, notarization, auto-update.
+6. **Windows:** custom region-select overlay, since there is no `screencapture` equivalent.
 
 ## 12. Risks
 
@@ -185,10 +185,10 @@ Each milestone is one branch and one PR-sized change, merged when checks pass an
 | Gemini latency spikes or outages                      | Medium     | 8 s timeout, 1 retry, clear error; the engine is swappable          |
 | Hotkey conflicts with other apps                      | Medium     | Configurable; registration failure surfaced in the UI               |
 
-## 13. Open questions
+## 13. Decisions
 
-1. Default hotkey: `⌘⇧2` (close to the macOS screenshot keys) or something less likely to
-   conflict?
-2. Should the API fall back to Gemini 3.8 Flash when Flash-Lite's output fails the KaTeX
-   check? It is more accurate, but costs more and is slower.
-3. Is the recent-snip history useful enough for v0, or should it move to M5+?
+| Question                                                | Decision                                                                                                                                   |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Default hotkey                                          | `⌘⇧2`: close to the macOS screenshot keys and changeable in settings                                                                       |
+| Fallback when Flash-Lite's output fails the KaTeX check | Retry once with Gemini 3.8 Flash. Rare in practice (0 of 200 paid-tier outputs failed), so the extra cost and latency only hit those snips |
+| Recent-snip history                                     | Out of v0; moved to later phases                                                                                                           |
