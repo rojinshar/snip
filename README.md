@@ -1,0 +1,52 @@
+# Snip
+
+Screenshot any equation, paste LaTeX.
+
+Snip is a hotkey tool: drag a box over an equation anywhere on screen, and paste-ready LaTeX
+lands on your clipboard. Every result is checked with KaTeX before you see it.
+
+## Repository layout
+
+```
+packages/
+  core/     OCR engines (Gemini, Mathpix), model router, LaTeX validation and scoring
+apps/
+  bench/    accuracy, latency and cost benchmark for the engines
+```
+
+Planned: `apps/api` (Node + TypeScript API: auth, quotas, Stripe) and `apps/desktop`
+(Tauri capture app).
+
+## Requirements
+
+- Node.js 20.12+ (`nvm use`)
+- npm 10+
+
+## Getting started
+
+```sh
+npm install
+cp .env.example .env    # add your keys
+npm run check           # typecheck, lint, format check, tests
+npm run bench           # run the OCR benchmark on the sample set
+```
+
+## Scripts
+
+| Script                 | What it does                      |
+| ---------------------- | --------------------------------- |
+| `npm run typecheck`    | `tsc -b` across all workspaces    |
+| `npm run lint`         | ESLint (typescript-eslint strict) |
+| `npm run format`       | Prettier write                    |
+| `npm test`             | Vitest, run once                  |
+| `npm run check`        | Everything CI runs                |
+| `npm run bench -- ...` | OCR benchmark; see `apps/bench`   |
+
+## Conventions
+
+- TypeScript strict mode, ESM, and Node built-ins over dependencies where reasonable.
+- Workspace packages are consumed as TypeScript source (`exports` points at `src/index.ts`).
+  Apps run through `tsx`, so there is no build step for internal packages yet.
+- Unit tests sit next to each package in `test/`. Tests never call paid APIs.
+- Conventional Commits (`feat:`, `fix:`, `chore:` ...), with feature branches merged into
+  `main`.
