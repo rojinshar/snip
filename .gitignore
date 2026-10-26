@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Benchmark data and results (equation images are personal course material)
+apps/bench/data/*
+!apps/bench/data/README.md
+!apps/bench/data/sample/
+apps/bench/results/
+
+# Tooling
+coverage/
+.vitest/
+*.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
