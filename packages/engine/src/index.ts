@@ -15,6 +15,7 @@ export {
 } from './engines/gemini.ts';
 export { MathpixEngine, type MathpixEngineConfig } from './engines/mathpix.ts';
 export { LATEX_OCR_PROMPT } from './engines/prompt.ts';
+export { UnimernetEngine, type UnimernetEngineConfig } from './engines/unimernet.ts';
 export { OcrEngineError } from './errors.ts';
 export {
   compareLatex,

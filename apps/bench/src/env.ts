@@ -11,6 +11,7 @@ const envSchema = z.object({
   GEMINI_API_KEY: optionalSecret,
   MATHPIX_APP_ID: optionalSecret,
   MATHPIX_APP_KEY: optionalSecret,
+  UNIMERNET_URL: z.url().default('http://127.0.0.1:8765'),
 });
 
 export type BenchEnv = z.infer<typeof envSchema>;

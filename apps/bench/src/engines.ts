@@ -6,13 +6,19 @@ import {
   type OcrEngine,
   type OcrImage,
   OcrRouter,
+  UnimernetEngine,
 } from '@snip/engine';
 
 import type { BenchEnv } from './env.ts';
 
 const GEMINI_ENGINE_NAMES = Object.keys(GEMINI_PRESETS) as GeminiPresetName[];
 
-export const ENGINE_NAMES = [...GEMINI_ENGINE_NAMES, 'router', 'mathpix'] as const;
+export const ENGINE_NAMES = [
+  ...GEMINI_ENGINE_NAMES,
+  'router',
+  'unimernet-tiny',
+  'mathpix',
+] as const;
 export type EngineName = (typeof ENGINE_NAMES)[number];
 
 export interface RunOutput {
@@ -49,6 +55,8 @@ function createRunner(name: EngineName, env: BenchEnv): BenchRunner {
   switch (name) {
     case 'mathpix':
       return singleEngineRunner(name, createMathpix(env));
+    case 'unimernet-tiny':
+      return singleEngineRunner(name, new UnimernetEngine({ baseUrl: env.UNIMERNET_URL }));
     case 'router':
       // The self-hosted UniMERNet fallback joins the chain once it exists.
       return routerRunner(new OcrRouter(ROUTER_CHAIN.map((preset) => createGemini(preset, env))));

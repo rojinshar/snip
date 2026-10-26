@@ -18,6 +18,13 @@ apps/bench/data/*
 !apps/bench/data/README.md
 !apps/bench/data/sample/
 
+# Python (apps/unimernet-server)
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+apps/unimernet-server/models/
+
 # Tooling
 coverage/
 .vitest/

@@ -3,3 +3,5 @@ dist
 coverage
 package-lock.json
 results
+.venv
+apps/unimernet-server/models
