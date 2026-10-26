@@ -3,10 +3,17 @@ import { parseArgs } from 'node:util';
 
 import { UsageError, positiveInt } from './cli-args.ts';
 import { DatasetError, loadDataset } from './dataset.ts';
-import { ENGINE_NAMES, EngineConfigError, createRunners, isEngineName } from './engines.ts';
+import type { ConfidenceGate } from '@snip/engine';
+
+import {
+  DEFAULT_HYBRID_GATE,
+  ENGINE_NAMES,
+  EngineConfigError,
+  createRunners,
+  isEngineName,
+} from './engines.ts';
 import { loadEnv } from './env.ts';
 import { isCorrect, summarize } from './metrics.ts';
-import { RateLimiter } from './rate-limit.ts';
 import { renderSummaryTable, writeReport } from './report.ts';
 import { runBenchmark } from './runner.ts';
 
@@ -23,7 +30,10 @@ Options:
                         (default: ${DEFAULT_ENGINES})
   --concurrency <n>     Max in-flight requests (default: 4)
   --limit <n>           Only run the first n samples
-  --rpm <n>             Max requests started per minute (free tier: 15 per model)
+  --rpm <n>             Max Gemini requests started per minute, per model (free tier: 15)
+  --gate <metric:value> Hybrid router: accept UniMERNet when its confidence metric
+                        (mean or min) is at least value
+                        (default: ${DEFAULT_HYBRID_GATE.metric}:${DEFAULT_HYBRID_GATE.threshold})
   --out <dir>           Output directory (default: <repo>/results/<timestamp>)
   -h, --help            Show this help
 
@@ -35,6 +45,7 @@ interface CliOptions {
   readonly concurrency: number;
   readonly limit: number | undefined;
   readonly rpm: number | undefined;
+  readonly gate: ConfidenceGate;
   readonly outDir: string;
 }
 
@@ -44,6 +55,7 @@ const CLI_OPTIONS = {
   concurrency: { type: 'string', default: '4' },
   limit: { type: 'string' },
   rpm: { type: 'string' },
+  gate: { type: 'string' },
   out: { type: 'string' },
   help: { type: 'boolean', short: 'h', default: false },
 } as const;
@@ -72,8 +84,18 @@ function parseCli(argv: string[], startedAt: Date): CliOptions | null {
     concurrency: positiveInt('--concurrency', values.concurrency),
     limit: values.limit === undefined ? undefined : positiveInt('--limit', values.limit),
     rpm: values.rpm === undefined ? undefined : positiveInt('--rpm', values.rpm),
+    gate: values.gate === undefined ? DEFAULT_HYBRID_GATE : parseGate(values.gate),
     outDir: path.resolve(REPO_ROOT, values.out ?? path.join('results', stamp)),
   };
+}
+
+function parseGate(raw: string): ConfidenceGate {
+  const [metric, value] = raw.split(':');
+  const threshold = Number(value);
+  if ((metric !== 'mean' && metric !== 'min') || !(threshold > 0 && threshold <= 1)) {
+    throw new UsageError('--gate must look like mean:0.98 or min:0.5');
+  }
+  return { metric, threshold };
 }
 
 async function main(): Promise<void> {
@@ -85,7 +107,10 @@ async function main(): Promise<void> {
   }
 
   const env = loadEnv(path.join(REPO_ROOT, '.env'));
-  const runners = createRunners(options.engines, env);
+  const runners = createRunners(options.engines, env, {
+    hybridGate: options.gate,
+    ...(options.rpm === undefined ? {} : { geminiRpm: options.rpm }),
+  });
   const allSamples = await loadDataset(options.manifestPath);
   const samples = options.limit === undefined ? allSamples : allSamples.slice(0, options.limit);
 
@@ -99,7 +124,6 @@ async function main(): Promise<void> {
     samples,
     runners,
     concurrency: options.concurrency,
-    ...(options.rpm === undefined ? {} : { rateLimiter: new RateLimiter(options.rpm) }),
     onResult: (result) => {
       done++;
       const mark = isCorrect(result) ? 'ok  ' : 'miss';

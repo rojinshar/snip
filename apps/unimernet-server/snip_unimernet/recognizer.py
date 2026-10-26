@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import math
 import os
 import threading
 import warnings
+from dataclasses import dataclass
 from typing import Protocol
 
 import torch
@@ -14,12 +16,28 @@ from PIL import Image
 from snip_unimernet.settings import CHECKPOINT, IMAGE_SIZE, MAX_SEQ_LEN, MODEL_DIR
 
 
+@dataclass(frozen=True)
+class Recognition:
+    latex: str
+    # Probabilities the model assigned to each token it emitted (greedy decoding), summarized.
+    # mean: geometric mean over tokens. min: the least confident token. Both in (0, 1].
+    mean_token_prob: float
+    min_token_prob: float
+
+
 class Recognizer(Protocol):
     """Anything that turns an image into LaTeX. Lets the server be tested without the model."""
 
     device: str
 
-    def recognize(self, image: Image.Image) -> str: ...
+    def recognize(self, image: Image.Image) -> Recognition: ...
+
+
+def summarize_log_probs(log_probs: list[float]) -> tuple[float, float]:
+    """Returns (geometric mean prob, min prob) for per-token log probabilities."""
+    if not log_probs:
+        return 0.0, 0.0
+    return math.exp(sum(log_probs) / len(log_probs)), math.exp(min(log_probs))
 
 
 def pick_device() -> str:
@@ -72,9 +90,29 @@ class UnimernetRecognizer:
             # The first generate() compiles GPU kernels and takes seconds; pay that at startup.
             self.recognize(Image.new("RGB", (IMAGE_SIZE[1], IMAGE_SIZE[0]), "white"))
 
-    def recognize(self, image: Image.Image) -> str:
+    def recognize(self, image: Image.Image) -> Recognition:
         pixels = self._processor(image.convert("RGB")).unsqueeze(0).to(self.device)
-        with self._lock, warnings.catch_warnings():
+        # UniMERModel.generate drops the kwargs needed for scores, so call the underlying
+        # Hugging Face model directly, mirroring its preprocessing (1 -> 3 channels).
+        hf_model = self._model.model.model
+        tokenizer = self._model.tokenizer
+        with self._lock, torch.no_grad(), warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UserWarning)
-            output = self._model.generate({"image": pixels})
-        return str(output["pred_str"][0])
+            output = hf_model.generate(
+                pixel_values=pixels.repeat(1, 3, 1, 1),
+                max_new_tokens=MAX_SEQ_LEN,
+                decoder_start_token_id=tokenizer.tokenizer.bos_token_id,
+                do_sample=False,
+                output_scores=True,
+                return_dict_in_generate=True,
+            )
+            # scores[i] holds the step-i logits; the token chosen at step i is sequences[:, i + 1]
+            # (index 0 is the decoder start token). Greedy decoding, so no beam reordering.
+            # compute_transition_scores() can't be used: it needs config.vocab_size, which
+            # VisionEncoderDecoderConfig does not have.
+            step_logits = torch.stack(output.scores, dim=1)[0].float()
+            chosen = output.sequences[0, 1 : 1 + step_logits.shape[0]]
+            log_probs = torch.log_softmax(step_logits, dim=-1).gather(1, chosen.unsqueeze(1))
+        mean_prob, min_prob = summarize_log_probs(log_probs.squeeze(1).cpu().tolist())
+        latex = str(tokenizer.token2str(output.sequences[:, 1:])[0])
+        return Recognition(latex=latex, mean_token_prob=mean_prob, min_token_prob=min_prob)

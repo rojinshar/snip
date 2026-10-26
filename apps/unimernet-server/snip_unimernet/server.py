@@ -17,8 +17,14 @@ from snip_unimernet.settings import MODEL_REPO, MODEL_REVISION
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
 
+class Confidence(BaseModel):
+    mean_token_prob: float
+    min_token_prob: float
+
+
 class RecognizeResponse(BaseModel):
     latex: str
+    confidence: Confidence
     inference_ms: float
     device: str
 
@@ -66,9 +72,12 @@ def create_app(load_recognizer: Callable[[], Recognizer]) -> FastAPI:
 
         recognizer = state["recognizer"]
         started = time.perf_counter()
-        latex = recognizer.recognize(image)
+        result = recognizer.recognize(image)
         return RecognizeResponse(
-            latex=latex,
+            latex=result.latex,
+            confidence=Confidence(
+                mean_token_prob=result.mean_token_prob, min_token_prob=result.min_token_prob
+            ),
             inference_ms=(time.perf_counter() - started) * 1000,
             device=recognizer.device,
         )

@@ -1,3 +1,5 @@
+import type { OcrEngine, OcrEngineOutput, OcrImage, RecognizeOptions } from '@snip/engine';
+
 /**
  * Spaces calls so that at most `requestsPerMinute` start in any minute. Callers await
  * `acquire()` right before each request. Slots are handed out in call order.
@@ -21,5 +23,22 @@ export class RateLimiter {
     const slot = Math.max(now, this.nextSlotAt);
     this.nextSlotAt = slot + this.intervalMs;
     if (slot > now) await this.sleep(slot - now);
+  }
+}
+
+/** Wraps an engine so every call first waits for a slot from `limiter`. */
+export class RateLimitedEngine implements OcrEngine {
+  readonly id: string;
+
+  constructor(
+    private readonly engine: OcrEngine,
+    private readonly limiter: RateLimiter,
+  ) {
+    this.id = engine.id;
+  }
+
+  async recognize(image: OcrImage, options?: RecognizeOptions): Promise<OcrEngineOutput> {
+    await this.limiter.acquire();
+    return this.engine.recognize(image, options);
   }
 }

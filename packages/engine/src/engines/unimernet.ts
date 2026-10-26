@@ -7,6 +7,7 @@ import type { OcrEngine, OcrEngineOutput, OcrImage, RecognizeOptions } from './t
 
 const responseSchema = z.object({
   latex: z.string(),
+  confidence: z.object({ mean_token_prob: z.number(), min_token_prob: z.number() }),
   inference_ms: z.number(),
   device: z.string(),
 });
@@ -71,6 +72,7 @@ export class UnimernetEngine implements OcrEngine {
     return {
       latex: sanitizeModelOutput(body.latex),
       usage: { inputTokens: 0, outputTokens: 0, costUsd: 0 },
+      confidence: { mean: body.confidence.mean_token_prob, min: body.confidence.min_token_prob },
     };
   }
 }

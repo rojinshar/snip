@@ -19,6 +19,8 @@ export interface EngineSummary extends AccuracyStats {
   readonly latencyP95Ms: number;
   readonly totalCostUsd: number;
   readonly costPerSnipUsd: number;
+  /** Share of samples answered by each underlying engine (differs from `engine` for routers). */
+  readonly servedBy: Readonly<Record<string, number>>;
   /** Keyed by category, in order of first appearance in the dataset. */
   readonly byCategory: Readonly<Record<string, AccuracyStats>>;
 }
@@ -44,6 +46,12 @@ export function summarize(results: readonly SampleResult[]): EngineSummary[] {
       latencyP95Ms: percentile(latencies, 95),
       totalCostUsd,
       costPerSnipUsd: totalCostUsd / rows.length,
+      servedBy: Object.fromEntries(
+        [...groupBy(rows, (row) => row.servedBy ?? 'none')].map(([by, group]) => [
+          by,
+          group.length / rows.length,
+        ]),
+      ),
       byCategory,
     };
   });

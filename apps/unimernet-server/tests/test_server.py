@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from snip_unimernet.recognizer import Recognition
 from snip_unimernet.server import MAX_IMAGE_BYTES, create_app
 
 
@@ -13,9 +14,9 @@ class FakeRecognizer:
     def __init__(self) -> None:
         self.seen: list[tuple[int, int]] = []
 
-    def recognize(self, image: Image.Image) -> str:
+    def recognize(self, image: Image.Image) -> Recognition:
         self.seen.append(image.size)
-        return "x ^ { 2 }"
+        return Recognition(latex="x ^ { 2 }", mean_token_prob=0.9, min_token_prob=0.5)
 
 
 @pytest.fixture
@@ -44,6 +45,7 @@ def test_recognize_returns_latex(client: TestClient, fake: FakeRecognizer) -> No
     body = response.json()
     assert body["latex"] == "x ^ { 2 }"
     assert body["device"] == "cpu"
+    assert body["confidence"] == {"mean_token_prob": 0.9, "min_token_prob": 0.5}
     assert body["inference_ms"] >= 0
     assert fake.seen == [(40, 20)]
 

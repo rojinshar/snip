@@ -1,7 +1,28 @@
-import type { OcrEngine, OcrImage, OcrUsage, RecognizeOptions } from './engines/types.ts';
+import type {
+  OcrConfidence,
+  OcrEngine,
+  OcrImage,
+  OcrUsage,
+  RecognizeOptions,
+} from './engines/types.ts';
 import { type ValidationResult, validateLatex } from './latex/validate.ts';
 
-export type AttemptOutcome = 'accepted' | 'invalid' | 'error';
+export type AttemptOutcome = 'accepted' | 'low-confidence' | 'invalid' | 'error';
+
+export interface ConfidenceGate {
+  readonly metric: keyof OcrConfidence;
+  /** Outputs scoring below this fall through to the next step. */
+  readonly threshold: number;
+}
+
+export interface RouterStep {
+  readonly engine: OcrEngine;
+  /**
+   * Only accept this engine's output when it reports confidence at or above the threshold.
+   * Outputs without a confidence score fail the gate.
+   */
+  readonly minConfidence?: ConfidenceGate;
+}
 
 export interface RouterAttempt {
   readonly engineId: string;
@@ -9,6 +30,7 @@ export interface RouterAttempt {
   readonly latencyMs: number;
   readonly latex?: string;
   readonly usage?: OcrUsage;
+  readonly confidence?: OcrConfidence;
   /** Validation or engine error message when the attempt was not accepted. */
   readonly detail?: string;
 }
@@ -24,6 +46,11 @@ export type RouterResult =
       readonly status: 'ok';
       readonly latex: string;
       readonly engineId: string;
+      /**
+       * True when no step was accepted and the router fell back to a valid output that failed
+       * its confidence gate. Better than failing the snip outright.
+       */
+      readonly degraded: boolean;
     })
   | (RouterResultBase & { readonly status: 'failed' });
 
@@ -33,31 +60,33 @@ export interface OcrRouterOptions {
 }
 
 /**
- * Tries engines in order and returns the first output that passes validation, so the user
- * never receives LaTeX that does not render. Engine errors and invalid output both fall
- * through to the next engine.
+ * Tries steps in order and returns the first output that renders and passes the step's
+ * confidence gate, so the user never receives LaTeX that does not render. Engine errors,
+ * invalid output and low confidence all fall through to the next step. If every step falls
+ * through, the most recent valid low-confidence output is returned as degraded.
  */
 export class OcrRouter {
-  private readonly engines: readonly OcrEngine[];
+  private readonly steps: readonly RouterStep[];
   private readonly validate: (latex: string) => ValidationResult;
   private readonly now: () => number;
 
-  constructor(engines: readonly OcrEngine[], options: OcrRouterOptions = {}) {
-    if (engines.length === 0) throw new Error('OcrRouter requires at least one engine');
-    this.engines = engines;
+  constructor(steps: readonly RouterStep[], options: OcrRouterOptions = {}) {
+    if (steps.length === 0) throw new Error('OcrRouter requires at least one step');
+    this.steps = steps;
     this.validate = options.validate ?? validateLatex;
     this.now = options.now ?? (() => performance.now());
   }
 
   get engineIds(): readonly string[] {
-    return this.engines.map((engine) => engine.id);
+    return this.steps.map((step) => step.engine.id);
   }
 
   async recognize(image: OcrImage, options: RecognizeOptions = {}): Promise<RouterResult> {
     const startedAt = this.now();
     const attempts: RouterAttempt[] = [];
+    let fallback: RouterAttempt | undefined;
 
-    for (const engine of this.engines) {
+    for (const { engine, minConfidence } of this.steps) {
       if (options.signal?.aborted) break;
 
       const attemptStartedAt = this.now();
@@ -69,18 +98,33 @@ export class OcrRouter {
           latencyMs: this.now() - attemptStartedAt,
           latex: output.latex,
           ...(output.usage ? { usage: output.usage } : {}),
+          ...(output.confidence ? { confidence: output.confidence } : {}),
         };
 
-        if (validation.ok) {
-          attempts.push({ ...attempt, outcome: 'accepted' });
-          return {
-            status: 'ok',
-            latex: output.latex,
-            engineId: engine.id,
-            ...summarize(attempts, this.now() - startedAt),
-          };
+        if (!validation.ok) {
+          attempts.push({ ...attempt, outcome: 'invalid', detail: validation.error });
+          continue;
         }
-        attempts.push({ ...attempt, outcome: 'invalid', detail: validation.error });
+        if (minConfidence && !passesGate(output.confidence, minConfidence)) {
+          const score = output.confidence?.[minConfidence.metric];
+          const lowConfidence: RouterAttempt = {
+            ...attempt,
+            outcome: 'low-confidence',
+            detail: `${minConfidence.metric} confidence ${score?.toFixed(3) ?? 'missing'} < ${minConfidence.threshold}`,
+          };
+          attempts.push(lowConfidence);
+          fallback = lowConfidence;
+          continue;
+        }
+
+        attempts.push({ ...attempt, outcome: 'accepted' });
+        return {
+          status: 'ok',
+          latex: output.latex,
+          engineId: engine.id,
+          degraded: false,
+          ...summarize(attempts, this.now() - startedAt),
+        };
       } catch (error) {
         attempts.push({
           engineId: engine.id,
@@ -91,8 +135,22 @@ export class OcrRouter {
       }
     }
 
-    return { status: 'failed', ...summarize(attempts, this.now() - startedAt) };
+    const summary = summarize(attempts, this.now() - startedAt);
+    if (fallback?.latex !== undefined) {
+      return {
+        status: 'ok',
+        latex: fallback.latex,
+        engineId: fallback.engineId,
+        degraded: true,
+        ...summary,
+      };
+    }
+    return { status: 'failed', ...summary };
   }
+}
+
+function passesGate(confidence: OcrConfidence | undefined, gate: ConfidenceGate): boolean {
+  return confidence !== undefined && confidence[gate.metric] >= gate.threshold;
 }
 
 function summarize(attempts: readonly RouterAttempt[], latencyMs: number): RouterResultBase {

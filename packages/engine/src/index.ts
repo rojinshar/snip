@@ -1,5 +1,6 @@
 export type {
   ImageMimeType,
+  OcrConfidence,
   OcrEngine,
   OcrEngineOutput,
   OcrImage,
@@ -31,7 +32,9 @@ export { DEFAULT_RETRY_POLICY, withRetry, type RetryPolicy } from './retry.ts';
 export {
   OcrRouter,
   type AttemptOutcome,
+  type ConfidenceGate,
   type OcrRouterOptions,
+  type RouterStep,
   type RouterAttempt,
   type RouterResult,
 } from './router.ts';

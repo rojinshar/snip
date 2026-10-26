@@ -61,6 +61,16 @@ export function renderMarkdown(
     '',
     renderCategoryTable(summaries),
     '',
+    '## Served by',
+    '',
+    ...summaries.map(
+      (summary) =>
+        `- ${summary.engine}: ` +
+        Object.entries(summary.servedBy)
+          .map(([by, share]) => `${by} ${pct(share)}`)
+          .join(', '),
+    ),
+    '',
     '## Misses',
     '',
   ];

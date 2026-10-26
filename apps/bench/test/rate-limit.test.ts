@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { RateLimiter } from '../src/rate-limit.ts';
+import type { OcrEngine } from '@snip/engine';
+
+import { RateLimitedEngine, RateLimiter } from '../src/rate-limit.ts';
 
 describe('RateLimiter', () => {
   it('spaces consecutive acquisitions by 60s / rpm', async () => {
@@ -41,5 +43,30 @@ describe('RateLimiter', () => {
 
   it('rejects a non-positive rate', () => {
     expect(() => new RateLimiter(0)).toThrow();
+  });
+});
+
+describe('RateLimitedEngine', () => {
+  it('waits for a slot before every call and keeps the engine id', async () => {
+    const order: string[] = [];
+    const limiter = {
+      acquire: () => {
+        order.push('acquire');
+        return Promise.resolve();
+      },
+    };
+    const engine: OcrEngine = {
+      id: 'gemini-3.5-flash-lite',
+      recognize: () => {
+        order.push('recognize');
+        return Promise.resolve({ latex: 'x' });
+      },
+    };
+    const limited = new RateLimitedEngine(engine, limiter as unknown as RateLimiter);
+
+    await limited.recognize({ data: Buffer.from(''), mimeType: 'image/png' });
+
+    expect(limited.id).toBe('gemini-3.5-flash-lite');
+    expect(order).toEqual(['acquire', 'recognize']);
   });
 });

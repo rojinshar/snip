@@ -21,7 +21,12 @@ function stubFetch(response: Response | Error) {
 describe('UnimernetEngine', () => {
   it('posts the raw image and returns sanitized LaTeX at zero cost', async () => {
     const fetchMock = stubFetch(
-      Response.json({ latex: '$x ^ { 2 }$', inference_ms: 12.5, device: 'mps' }),
+      Response.json({
+        latex: '$x ^ { 2 }$',
+        confidence: { mean_token_prob: 0.97, min_token_prob: 0.61 },
+        inference_ms: 12.5,
+        device: 'mps',
+      }),
     );
     const engine = new UnimernetEngine({ baseUrl: 'http://127.0.0.1:8765' });
 
@@ -30,6 +35,7 @@ describe('UnimernetEngine', () => {
     expect(output).toEqual({
       latex: 'x ^ { 2 }',
       usage: { inputTokens: 0, outputTokens: 0, costUsd: 0 },
+      confidence: { mean: 0.97, min: 0.61 },
     });
     const [url, init] = fetchMock.mock.calls[0] ?? [];
     expect(url).toBe('http://127.0.0.1:8765/v1/recognize');

@@ -48,6 +48,7 @@ describe('summarize', () => {
       latencyP95Ms: 300,
     });
     expect(lite?.costPerSnipUsd).toBeCloseTo(0.002);
+    expect(lite?.servedBy).toEqual({ none: 1 });
     expect(lite?.byCategory.printed?.accuracy).toBe(1);
     expect(lite?.byCategory.handwritten?.accuracy).toBe(0);
     expect(Object.keys(lite?.byCategory ?? {})).toEqual(['printed', 'handwritten']);
