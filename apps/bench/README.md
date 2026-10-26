@@ -11,12 +11,12 @@ From the repository root:
 
 ```sh
 cp .env.example .env            # add GEMINI_API_KEY (and Mathpix keys if you have them)
-npm run bench                   # sample set, Gemini engines and router
-npm run bench -- --dataset data/my-set/manifest.jsonl --engines gemini-flash-lite,router,mathpix
+npm run bench                   # sample set, all Gemini engines and the router
+npm run bench -- --dataset data/my-set/manifest.jsonl --engines gemini-3.5-flash-lite,router,mathpix
 npm run bench -- --help
 ```
 
-Each run writes to `apps/bench/results/<timestamp>/`:
+Each run writes to `results/<timestamp>/` at the repository root (git-ignored):
 
 - `summary.md`: overall table, accuracy by category, and every miss with its prediction
 - `summary.json`: the same numbers, machine-readable
@@ -24,12 +24,16 @@ Each run writes to `apps/bench/results/<timestamp>/`:
 
 ## Engines
 
-| Name                | What it is                                                                     |
-| ------------------- | ------------------------------------------------------------------------------ |
-| `gemini-flash-lite` | Gemini 2.5 Flash-Lite, the planned default                                     |
-| `gemini-flash`      | Gemini 2.5 Flash, the planned retry model                                      |
-| `router`            | Production routing: Flash-Lite, then Flash if the output fails the KaTeX check |
-| `mathpix`           | Mathpix Convert API, the reference to beat                                     |
+| Name                    | What it is                                                                             |
+| ----------------------- | -------------------------------------------------------------------------------------- |
+| `gemini-3.5-flash-lite` | Planned default; Google's recommended high-volume model                                |
+| `gemini-3.1-flash-lite` | Cheaper previous generation; candidate default if accuracy holds up                    |
+| `gemini-3.8-flash`      | Strongest Flash model; planned retry                                                   |
+| `router`                | Production routing: 3.5 Flash-Lite, then 3.8 Flash if the output fails the KaTeX check |
+| `mathpix`               | Mathpix Convert API, the reference to beat                                             |
+
+Model IDs, prices and thinking levels live in `GEMINI_PRESETS` in
+`packages/engine/src/engines/gemini.ts`.
 
 ## Metrics
 

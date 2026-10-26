@@ -11,18 +11,20 @@ import { runBenchmark } from './runner.ts';
 const BENCH_ROOT = path.resolve(import.meta.dirname, '..');
 const REPO_ROOT = path.resolve(BENCH_ROOT, '../..');
 
+const DEFAULT_ENGINES = 'gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.8-flash,router';
+
 const USAGE = `Usage: npm run bench -- [options]
 
 Options:
   --dataset <path>      JSONL manifest (default: data/sample/manifest.jsonl)
   --engines <list>      Comma-separated: ${ENGINE_NAMES.join(', ')}
-                        (default: gemini-flash-lite,gemini-flash,router)
+                        (default: ${DEFAULT_ENGINES})
   --concurrency <n>     Max in-flight requests (default: 4)
   --limit <n>           Only run the first n samples
-  --out <dir>           Output directory (default: results/<timestamp>)
+  --out <dir>           Output directory (default: <repo>/results/<timestamp>)
   -h, --help            Show this help
 
-Relative paths resolve against apps/bench.`;
+--dataset resolves against apps/bench; --out against the repo root.`;
 
 interface CliOptions {
   readonly manifestPath: string;
@@ -38,7 +40,7 @@ class UsageError extends Error {
 
 const CLI_OPTIONS = {
   dataset: { type: 'string', default: 'data/sample/manifest.jsonl' },
-  engines: { type: 'string', default: 'gemini-flash-lite,gemini-flash,router' },
+  engines: { type: 'string', default: DEFAULT_ENGINES },
   concurrency: { type: 'string', default: '4' },
   limit: { type: 'string' },
   out: { type: 'string' },
@@ -68,7 +70,7 @@ function parseCli(argv: string[], startedAt: Date): CliOptions | null {
     engines: engines.filter(isEngineName),
     concurrency: positiveInt('--concurrency', values.concurrency),
     limit: values.limit === undefined ? undefined : positiveInt('--limit', values.limit),
-    outDir: path.resolve(BENCH_ROOT, values.out ?? path.join('results', stamp)),
+    outDir: path.resolve(REPO_ROOT, values.out ?? path.join('results', stamp)),
   };
 }
 
@@ -106,7 +108,8 @@ async function main(): Promise<void> {
     onResult: (result) => {
       done++;
       const mark = result.exactMatch || result.renderMatch ? 'ok  ' : 'miss';
-      console.error(`[${done}/${total}] ${mark} ${result.engine} ${result.sampleId}`);
+      const error = result.error === undefined ? '' : ` (${result.error.slice(0, 200)})`;
+      console.error(`[${done}/${total}] ${mark} ${result.engine} ${result.sampleId}${error}`);
     },
   });
 

@@ -10,6 +10,7 @@ export {
   GEMINI_PRESETS,
   GeminiEngine,
   type GeminiEngineConfig,
+  type GeminiPresetName,
   type TokenPricing,
 } from './engines/gemini.ts';
 export { MathpixEngine, type MathpixEngineConfig } from './engines/mathpix.ts';

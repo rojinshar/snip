@@ -10,11 +10,13 @@ dist/
 .env.*
 !.env.example
 
-# Benchmark data and results (equation images are personal course material)
+# Benchmark results (written by `npm run bench`)
+/results/
+
+# Benchmark datasets (equation images are personal course material)
 apps/bench/data/*
 !apps/bench/data/README.md
 !apps/bench/data/sample/
-apps/bench/results/
 
 # Tooling
 coverage/

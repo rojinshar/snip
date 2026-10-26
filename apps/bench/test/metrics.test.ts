@@ -33,7 +33,7 @@ describe('summarize', () => {
       result({ engine: 'mathpix', sampleId: 'a' }),
     ]);
 
-    expect(summaries.map((s) => s.engine)).toEqual(['gemini-flash-lite', 'mathpix']);
+    expect(summaries.map((s) => s.engine)).toEqual(['gemini-3.5-flash-lite', 'mathpix']);
     const lite = summaries[0];
     expect(lite).toMatchObject({
       samples: 2,

@@ -1,6 +1,7 @@
 import {
   GEMINI_PRESETS,
   GeminiEngine,
+  type GeminiPresetName,
   MathpixEngine,
   type OcrEngine,
   type OcrImage,
@@ -9,7 +10,9 @@ import {
 
 import type { BenchEnv } from './env.ts';
 
-export const ENGINE_NAMES = ['gemini-flash-lite', 'gemini-flash', 'router', 'mathpix'] as const;
+const GEMINI_ENGINE_NAMES = Object.keys(GEMINI_PRESETS) as GeminiPresetName[];
+
+export const ENGINE_NAMES = [...GEMINI_ENGINE_NAMES, 'router', 'mathpix'] as const;
 export type EngineName = (typeof ENGINE_NAMES)[number];
 
 export interface RunOutput {
@@ -39,28 +42,26 @@ export function createRunners(names: readonly EngineName[], env: BenchEnv): Benc
   return names.map((name) => createRunner(name, env));
 }
 
+/** Production routing plan: cheap model first, strongest Flash on failure. */
+const ROUTER_CHAIN: readonly GeminiPresetName[] = ['gemini-3.5-flash-lite', 'gemini-3.8-flash'];
+
 function createRunner(name: EngineName, env: BenchEnv): BenchRunner {
   switch (name) {
-    case 'gemini-flash-lite':
-    case 'gemini-flash':
-      return singleEngineRunner(name, createGemini(name, env));
     case 'mathpix':
       return singleEngineRunner(name, createMathpix(env));
     case 'router':
-      // Mirrors the production plan: Flash-Lite first, Flash on failure. The self-hosted
-      // UniMERNet fallback joins here once it exists.
-      return routerRunner(
-        new OcrRouter([createGemini('gemini-flash-lite', env), createGemini('gemini-flash', env)]),
-      );
+      // The self-hosted UniMERNet fallback joins the chain once it exists.
+      return routerRunner(new OcrRouter(ROUTER_CHAIN.map((preset) => createGemini(preset, env))));
+    default:
+      return singleEngineRunner(name, createGemini(name, env));
   }
 }
 
-function createGemini(preset: keyof typeof GEMINI_PRESETS, env: BenchEnv): GeminiEngine {
+function createGemini(preset: GeminiPresetName, env: BenchEnv): GeminiEngine {
   if (env.GEMINI_API_KEY === undefined) {
     throw new EngineConfigError(`${preset} needs GEMINI_API_KEY in .env`);
   }
-  const { model, pricing } = GEMINI_PRESETS[preset];
-  return new GeminiEngine({ id: preset, model, pricing, apiKey: env.GEMINI_API_KEY });
+  return new GeminiEngine({ id: preset, ...GEMINI_PRESETS[preset], apiKey: env.GEMINI_API_KEY });
 }
 
 function createMathpix(env: BenchEnv): MathpixEngine {

@@ -8,7 +8,7 @@ const metadata = {
   startedAt: '2026-10-26T00:00:00.000Z',
   manifestPath: 'apps/bench/data/sample/manifest.jsonl',
   sampleCount: 2,
-  engines: ['gemini-flash-lite', 'mathpix'],
+  engines: ['gemini-3.5-flash-lite', 'mathpix'],
 };
 
 describe('renderSummaryTable', () => {
@@ -23,7 +23,7 @@ describe('renderSummaryTable', () => {
     );
 
     expect(table).toContain('vs Mathpix');
-    expect(table).toMatch(/\| gemini-flash-lite \| 50\.0% .* \| 50\.0% FAIL \|/);
+    expect(table).toMatch(/\| gemini-3.5-flash-lite \| 50\.0% .* \| 50\.0% FAIL \|/);
     expect(table).toMatch(/\| mathpix \| 100\.0% .* \| 100\.0% pass \|/);
   });
 

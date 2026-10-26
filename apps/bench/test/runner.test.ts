@@ -7,15 +7,15 @@ import { sample } from './fixtures.ts';
 describe('scoreSample', () => {
   it('scores a correct prediction', () => {
     const scored = scoreSample(
-      'gemini-flash',
+      'gemini-3.8-flash',
       sample({ latex: '\\frac{a}{b}' }),
-      { latex: '\\dfrac{a}{b}', costUsd: 0.001, servedBy: 'gemini-flash' },
+      { latex: '\\dfrac{a}{b}', costUsd: 0.001, servedBy: 'gemini-3.8-flash' },
       250,
     );
 
     expect(scored).toMatchObject({
-      engine: 'gemini-flash',
-      servedBy: 'gemini-flash',
+      engine: 'gemini-3.8-flash',
+      servedBy: 'gemini-3.8-flash',
       renders: true,
       exactMatch: true,
       latencyMs: 250,
@@ -45,8 +45,8 @@ describe('runBenchmark', () => {
       () =>
         Promise.resolve<RunOutput>({ latex, costUsd: 0, servedBy: name });
     const runners: BenchRunner[] = [
-      { name: 'gemini-flash-lite', run: fixed('gemini-flash-lite', 'x^2') },
-      { name: 'gemini-flash', run: fixed('gemini-flash', 'y') },
+      { name: 'gemini-3.5-flash-lite', run: fixed('gemini-3.5-flash-lite', 'x^2') },
+      { name: 'gemini-3.8-flash', run: fixed('gemini-3.8-flash', 'y') },
     ];
     const seen: string[] = [];
 
@@ -58,10 +58,10 @@ describe('runBenchmark', () => {
     });
 
     expect(results.map((r) => [r.engine, r.sampleId, r.exactMatch])).toEqual([
-      ['gemini-flash-lite', 'a', true],
-      ['gemini-flash-lite', 'b', true],
-      ['gemini-flash', 'a', false],
-      ['gemini-flash', 'b', false],
+      ['gemini-3.5-flash-lite', 'a', true],
+      ['gemini-3.5-flash-lite', 'b', true],
+      ['gemini-3.8-flash', 'a', false],
+      ['gemini-3.8-flash', 'b', false],
     ]);
     expect(seen).toHaveLength(4);
   });

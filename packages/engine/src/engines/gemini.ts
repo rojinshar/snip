@@ -1,4 +1,4 @@
-import { ApiError, GoogleGenAI, createPartFromBase64 } from '@google/genai';
+import { ApiError, GoogleGenAI, ThinkingLevel, createPartFromBase64 } from '@google/genai';
 
 import { OcrEngineError, isRetryableStatus } from '../errors.ts';
 import { sanitizeModelOutput } from '../latex/sanitize.ts';
@@ -19,21 +19,45 @@ export interface GeminiEngineConfig {
   readonly pricing: TokenPricing;
   readonly timeoutMs?: number;
   readonly retryPolicy?: RetryPolicy;
-  /** Thinking adds latency and rarely helps transcription, so it is off by default. */
-  readonly thinkingBudget?: number;
+  /**
+   * Gemini 3 models cannot disable thinking; it adds latency and rarely helps transcription,
+   * so presets pin the lowest level each model allows. Omit to use the model default.
+   */
+  readonly thinkingLevel?: ThinkingLevel;
 }
 
-/** Published list prices; verify against https://ai.google.dev/gemini-api/docs/pricing. */
+interface GeminiPreset {
+  readonly model: string;
+  readonly pricing: TokenPricing;
+  readonly thinkingLevel?: ThinkingLevel;
+}
+
+/**
+ * Paid-tier list prices as of 2026-10; verify against
+ * https://ai.google.dev/gemini-api/docs/pricing. Thinking levels per
+ * https://ai.google.dev/gemini-api/docs/thinking.
+ */
 export const GEMINI_PRESETS = {
-  'gemini-flash-lite': {
-    model: 'gemini-2.5-flash-lite',
-    pricing: { inputPerMillion: 0.1, outputPerMillion: 0.4 },
-  },
-  'gemini-flash': {
-    model: 'gemini-2.5-flash',
+  /** Google's recommended high-volume model; planned default. */
+  'gemini-3.5-flash-lite': {
+    model: 'gemini-3.5-flash-lite',
     pricing: { inputPerMillion: 0.3, outputPerMillion: 2.5 },
+    thinkingLevel: ThinkingLevel.MINIMAL,
   },
-} as const satisfies Record<string, { model: string; pricing: TokenPricing }>;
+  /** Cheaper previous generation; candidate default if accuracy holds up. */
+  'gemini-3.1-flash-lite': {
+    model: 'gemini-3.1-flash-lite',
+    pricing: { inputPerMillion: 0.25, outputPerMillion: 1.5 },
+  },
+  /** Strongest Flash model; planned retry. Price doubles on 2027-01-01 ($1.50 / $7.50). */
+  'gemini-3.8-flash': {
+    model: 'gemini-3.8-flash',
+    pricing: { inputPerMillion: 0.75, outputPerMillion: 3.75 },
+    thinkingLevel: ThinkingLevel.LOW,
+  },
+} as const satisfies Record<string, GeminiPreset>;
+
+export type GeminiPresetName = keyof typeof GEMINI_PRESETS;
 
 export class GeminiEngine implements OcrEngine {
   readonly id: string;
@@ -71,7 +95,9 @@ export class GeminiEngine implements OcrEngine {
           systemInstruction: LATEX_OCR_PROMPT,
           temperature: 0,
           maxOutputTokens: 2048,
-          thinkingConfig: { thinkingBudget: this.config.thinkingBudget ?? 0 },
+          ...(this.config.thinkingLevel
+            ? { thinkingConfig: { thinkingLevel: this.config.thinkingLevel } }
+            : {}),
           ...(options.signal ? { abortSignal: options.signal } : {}),
         },
       });

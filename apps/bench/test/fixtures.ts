@@ -14,7 +14,7 @@ export function sample(overrides: Partial<Sample> = {}): Sample {
 
 export function result(overrides: Partial<SampleResult> = {}): SampleResult {
   return {
-    engine: 'gemini-flash-lite',
+    engine: 'gemini-3.5-flash-lite',
     sampleId: 's1',
     category: 'printed',
     reference: 'x^2',
