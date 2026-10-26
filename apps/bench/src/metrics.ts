@@ -3,10 +3,13 @@ import type { SampleResult } from './runner.ts';
 
 export interface AccuracyStats {
   readonly samples: number;
+  /** Share counted correct: symbol match or exact match. The headline number. */
+  readonly accuracy: number;
   readonly exactMatchRate: number;
-  readonly renderMatchRate: number;
   readonly renderRate: number;
-  readonly meanEditDistance: number;
+  /** Means are capped at 1 per sample so one garbage output cannot dominate. */
+  readonly meanSymbolEditDistance: number;
+  readonly meanTokenEditDistance: number;
 }
 
 export interface EngineSummary extends AccuracyStats {
@@ -49,11 +52,20 @@ export function summarize(results: readonly SampleResult[]): EngineSummary[] {
 function accuracy(rows: readonly SampleResult[]): AccuracyStats {
   return {
     samples: rows.length,
+    accuracy: rate(rows, isCorrect),
     exactMatchRate: rate(rows, (row) => row.exactMatch),
-    renderMatchRate: rate(rows, (row) => row.renderMatch || row.exactMatch),
     renderRate: rate(rows, (row) => row.renders),
-    meanEditDistance: sum(rows.map((row) => Math.min(row.normalizedEditDistance, 1))) / rows.length,
+    meanSymbolEditDistance: cappedMean(rows.map((row) => row.symbolEditDistance)),
+    meanTokenEditDistance: cappedMean(rows.map((row) => row.tokenEditDistance)),
   };
+}
+
+export function isCorrect(result: SampleResult): boolean {
+  return result.symbolMatch || result.exactMatch;
+}
+
+function cappedMean(values: readonly number[]): number {
+  return values.length === 0 ? 0 : sum(values.map((v) => Math.min(v, 1))) / values.length;
 }
 
 /** Nearest-rank percentile. Returns 0 for an empty list. */

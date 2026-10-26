@@ -1,6 +1,5 @@
-import katex from 'katex';
-
 import { sanitizeModelOutput } from './sanitize.ts';
+import { renderedSymbols } from './symbols.ts';
 
 /** Commands that only change spacing or sizing and never change meaning. */
 const DROPPED_COMMANDS = new Set([
@@ -85,24 +84,6 @@ export function normalizeLatex(latex: string): string[] {
   return out;
 }
 
-/**
- * Renders to MathML (annotation stripped) so that inputs which typeset identically compare
- * equal even when their source differs. Returns null when KaTeX cannot parse the input.
- */
-export function renderToMathml(latex: string): string | null {
-  try {
-    const html = katex.renderToString(sanitizeModelOutput(latex), {
-      displayMode: true,
-      output: 'mathml',
-      throwOnError: true,
-      strict: 'ignore',
-    });
-    return html.replace(/<annotation[\s\S]*?<\/annotation>/g, '');
-  } catch {
-    return null;
-  }
-}
-
 /** Levenshtein distance over token sequences. */
 export function editDistance(a: readonly string[], b: readonly string[]): number {
   let previous = Array.from({ length: b.length + 1 }, (_, j) => j);
@@ -118,23 +99,41 @@ export function editDistance(a: readonly string[], b: readonly string[]): number
 }
 
 export interface LatexComparison {
-  /** Normalized token sequences are identical. */
+  /** Normalized LaTeX token sequences are identical (strict, source-level). */
   readonly exactMatch: boolean;
-  /** Both render to identical MathML. False if either side fails to render. */
-  readonly renderMatch: boolean;
-  /** Token edit distance divided by reference length, in [0, 1+]. 0 is perfect. */
-  readonly normalizedEditDistance: number;
+  /**
+   * Both render to the same visible symbols and structure (see `renderedSymbols`).
+   * Ignores fonts and layout wrappers. False if either side fails to render.
+   */
+  readonly symbolMatch: boolean;
+  /** LaTeX token edit distance divided by reference length. 0 is perfect. */
+  readonly tokenEditDistance: number;
+  /**
+   * Rendered-symbol edit distance divided by reference length; 1 if the prediction does
+   * not render. 0 is perfect.
+   */
+  readonly symbolEditDistance: number;
 }
 
 export function compareLatex(prediction: string, reference: string): LatexComparison {
-  const predicted = normalizeLatex(prediction);
-  const expected = normalizeLatex(reference);
-  const predictedMathml = renderToMathml(prediction);
-  const expectedMathml = renderToMathml(reference);
+  const predictedTokens = normalizeLatex(prediction);
+  const expectedTokens = normalizeLatex(reference);
+  const predictedSymbols = renderedSymbols(prediction);
+  const expectedSymbols = renderedSymbols(reference);
+
+  const symbolEditDistance =
+    predictedSymbols === null || expectedSymbols === null
+      ? 1
+      : editDistance(predictedSymbols, expectedSymbols) / Math.max(expectedSymbols.length, 1);
 
   return {
-    exactMatch: predicted.join(' ') === expected.join(' '),
-    renderMatch: predictedMathml !== null && predictedMathml === expectedMathml,
-    normalizedEditDistance: editDistance(predicted, expected) / Math.max(expected.length, 1),
+    exactMatch: predictedTokens.join(' ') === expectedTokens.join(' '),
+    symbolMatch:
+      predictedSymbols !== null &&
+      expectedSymbols !== null &&
+      predictedSymbols.join('\u0000') === expectedSymbols.join('\u0000'),
+    tokenEditDistance:
+      editDistance(predictedTokens, expectedTokens) / Math.max(expectedTokens.length, 1),
+    symbolEditDistance,
   };
 }

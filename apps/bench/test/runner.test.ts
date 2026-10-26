@@ -32,8 +32,9 @@ describe('scoreSample', () => {
       error: 'boom',
       renders: false,
       exactMatch: false,
-      renderMatch: false,
-      normalizedEditDistance: 1,
+      symbolMatch: false,
+      tokenEditDistance: 1,
+      symbolEditDistance: 1,
     });
   });
 });

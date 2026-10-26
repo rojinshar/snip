@@ -37,12 +37,15 @@ Model IDs, prices and thinking levels live in `GEMINI_PRESETS` in
 
 ## Metrics
 
-- **Accuracy:** the prediction matches the reference after normalization, or both render to
-  identical MathML. This is the headline number.
+- **Accuracy:** the prediction renders to the same visible symbols and structure as the
+  reference (scripts, fractions, roots, tables), ignoring fonts and layout wrappers, so
+  `\\begin{array}` vs `\\begin{aligned}` or `\\mathrm{m}` vs `\\text{m}` still count as correct. This
+  is the headline number. Because fonts are ignored, `\\mathfrak{g}` vs `g` also passes.
 - **Exact:** normalized token sequences are identical. Stricter, source-level.
 - **Renders:** the share of outputs that KaTeX can parse. Anything else never reaches a user.
-- **Edit dist:** token-level Levenshtein distance divided by reference length, capped at 1.
-  Lower is better, and it shows how close the misses are.
+- **Symbol dist:** edit distance over rendered symbols divided by reference length, capped
+  at 1. Lower is better, and it shows how close the misses are. A LaTeX-token version is in
+  `summary.json` as `meanTokenEditDistance`.
 - **p50 / p95 ms:** wall-clock time per request, including retries.
 - **$/snip:** computed from reported token usage and list prices in `@snip/engine`.
 

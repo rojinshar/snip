@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { EngineSummary } from './metrics.ts';
+import { type EngineSummary, isCorrect } from './metrics.ts';
 import type { SampleResult } from './runner.ts';
 
 export interface RunMetadata {
@@ -53,8 +53,9 @@ export function renderMarkdown(
     '',
     renderSummaryTable(summaries),
     '',
-    'Accuracy counts a prediction as correct when it matches the reference after normalization',
-    'or renders to identical MathML. Exact match is the stricter, source-level check.',
+    'Accuracy counts a prediction as correct when it renders to the same symbols and structure',
+    'as the reference (fonts and layout wrappers ignored) or matches it exactly. Exact is the',
+    'strict source-level check. Symbol dist is rendered-symbol edit distance (0 is perfect).',
     '',
     '## Accuracy by category',
     '',
@@ -64,7 +65,7 @@ export function renderMarkdown(
     '',
   ];
 
-  const misses = results.filter((result) => !result.exactMatch && !result.renderMatch);
+  const misses = results.filter((result) => !isCorrect(result));
   if (misses.length === 0) {
     lines.push('None.');
   } else {
@@ -88,7 +89,7 @@ export function renderSummaryTable(summaries: readonly EngineSummary[]): string 
     'Accuracy',
     'Exact',
     'Renders',
-    'Edit dist',
+    'Symbol dist',
     'p50 ms',
     'p95 ms',
     '$/snip',
@@ -99,16 +100,16 @@ export function renderSummaryTable(summaries: readonly EngineSummary[]): string 
   const rows = summaries.map((summary) => {
     const row = [
       summary.engine,
-      pct(summary.renderMatchRate),
+      pct(summary.accuracy),
       pct(summary.exactMatchRate),
       pct(summary.renderRate),
-      summary.meanEditDistance.toFixed(3),
+      summary.meanSymbolEditDistance.toFixed(3),
       Math.round(summary.latencyP50Ms).toString(),
       Math.round(summary.latencyP95Ms).toString(),
       summary.costPerSnipUsd.toFixed(5),
       summary.errors.toString(),
     ];
-    if (mathpix) row.push(parity(summary.renderMatchRate, mathpix.renderMatchRate));
+    if (mathpix) row.push(parity(summary.accuracy, mathpix.accuracy));
     return row;
   });
 
@@ -121,7 +122,7 @@ function renderCategoryTable(summaries: readonly EngineSummary[]): string {
     summary.engine,
     ...categories.map((category) => {
       const stats = summary.byCategory[category];
-      return stats ? `${pct(stats.renderMatchRate)} (n=${stats.samples})` : '-';
+      return stats ? `${pct(stats.accuracy)} (n=${stats.samples})` : '-';
     }),
   ]);
   return table(['Engine', ...categories], rows);

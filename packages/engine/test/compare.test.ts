@@ -60,28 +60,36 @@ describe('editDistance', () => {
 });
 
 describe('compareLatex', () => {
-  it('scores a cosmetic difference as an exact and render match', () => {
+  it('scores a cosmetic difference as an exact and symbol match', () => {
     expect(compareLatex('\\frac{a}{b}^{2}', '\\frac{a}{b}^2')).toEqual({
       exactMatch: true,
-      renderMatch: true,
-      normalizedEditDistance: 0,
+      symbolMatch: true,
+      tokenEditDistance: 0,
+      symbolEditDistance: 0,
     });
   });
 
-  it('catches source differences that render identically', () => {
-    const result = compareLatex('{a}+b', 'a+b');
+  it('symbol-matches source differences that render the same', () => {
+    const result = compareLatex(
+      '\\begin{aligned} a &= b \\end{aligned}',
+      '\\begin{array}{rl} a & = b \\end{array}',
+    );
     expect(result.exactMatch).toBe(false);
-    expect(result.renderMatch).toBe(true);
+    expect(result.symbolMatch).toBe(true);
+    expect(result.symbolEditDistance).toBe(0);
   });
 
   it('reports a wrong symbol as a partial miss', () => {
     const result = compareLatex('a+c', 'a+b');
     expect(result.exactMatch).toBe(false);
-    expect(result.renderMatch).toBe(false);
-    expect(result.normalizedEditDistance).toBeCloseTo(1 / 3);
+    expect(result.symbolMatch).toBe(false);
+    expect(result.tokenEditDistance).toBeCloseTo(1 / 3);
+    expect(result.symbolEditDistance).toBeCloseTo(1 / 3);
   });
 
-  it('never render-matches unparseable output', () => {
-    expect(compareLatex('\\frac{a', '\\frac{a').renderMatch).toBe(false);
+  it('never symbol-matches unparseable output', () => {
+    const result = compareLatex('\\frac{a', '\\frac{a');
+    expect(result.symbolMatch).toBe(false);
+    expect(result.symbolEditDistance).toBe(1);
   });
 });

@@ -16,7 +16,7 @@ describe('renderSummaryTable', () => {
     const table = renderSummaryTable(
       summarize([
         result({ sampleId: 'a' }),
-        result({ sampleId: 'b', exactMatch: false, renderMatch: false }),
+        result({ sampleId: 'b', exactMatch: false, symbolMatch: false }),
         result({ engine: 'mathpix', sampleId: 'a' }),
         result({ engine: 'mathpix', sampleId: 'b' }),
       ]),
@@ -34,7 +34,7 @@ describe('renderSummaryTable', () => {
 
 describe('renderMarkdown', () => {
   it('lists misses with pipes escaped', () => {
-    const rows = [result({ prediction: '|x|', exactMatch: false, renderMatch: false })];
+    const rows = [result({ prediction: '|x|', exactMatch: false, symbolMatch: false })];
     const markdown = renderMarkdown(metadata, rows, summarize(rows));
 
     expect(markdown).toContain('## Misses');

@@ -23,9 +23,10 @@ describe('summarize', () => {
         sampleId: 'b',
         category: 'handwritten',
         exactMatch: false,
-        renderMatch: false,
+        symbolMatch: false,
         renders: false,
-        normalizedEditDistance: 0.5,
+        tokenEditDistance: 0.5,
+        symbolEditDistance: 0.5,
         latencyMs: 300,
         costUsd: 0.003,
         error: 'bad',
@@ -38,21 +39,22 @@ describe('summarize', () => {
     expect(lite).toMatchObject({
       samples: 2,
       exactMatchRate: 0.5,
-      renderMatchRate: 0.5,
+      accuracy: 0.5,
       renderRate: 0.5,
-      meanEditDistance: 0.25,
+      meanSymbolEditDistance: 0.25,
+      meanTokenEditDistance: 0.25,
       errors: 1,
       latencyP50Ms: 100,
       latencyP95Ms: 300,
     });
     expect(lite?.costPerSnipUsd).toBeCloseTo(0.002);
-    expect(lite?.byCategory.printed?.exactMatchRate).toBe(1);
-    expect(lite?.byCategory.handwritten?.exactMatchRate).toBe(0);
+    expect(lite?.byCategory.printed?.accuracy).toBe(1);
+    expect(lite?.byCategory.handwritten?.accuracy).toBe(0);
     expect(Object.keys(lite?.byCategory ?? {})).toEqual(['printed', 'handwritten']);
   });
 
   it('caps edit distance at 1 so one garbage output cannot dominate the mean', () => {
-    const [summary] = summarize([result({ normalizedEditDistance: 5 })]);
-    expect(summary?.meanEditDistance).toBe(1);
+    const [summary] = summarize([result({ symbolEditDistance: 5 })]);
+    expect(summary?.meanSymbolEditDistance).toBe(1);
   });
 });

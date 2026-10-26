@@ -20,11 +20,11 @@ export {
   compareLatex,
   editDistance,
   normalizeLatex,
-  renderToMathml,
   tokenizeLatex,
   type LatexComparison,
 } from './latex/compare.ts';
 export { sanitizeModelOutput } from './latex/sanitize.ts';
+export { renderedSymbols } from './latex/symbols.ts';
 export { validateLatex, type ValidationResult } from './latex/validate.ts';
 export { DEFAULT_RETRY_POLICY, withRetry, type RetryPolicy } from './retry.ts';
 export {

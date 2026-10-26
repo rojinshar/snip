@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/cli.ts",
-    "import:unimer": "tsx src/import-unimer.ts"
+    "import:unimer": "tsx src/import-unimer.ts",
+    "rescore": "tsx src/rescore.ts"
   },
   "dependencies": {
     "@snip/engine": "*",

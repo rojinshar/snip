@@ -5,7 +5,7 @@ import { UsageError, positiveInt } from './cli-args.ts';
 import { DatasetError, loadDataset } from './dataset.ts';
 import { ENGINE_NAMES, EngineConfigError, createRunners, isEngineName } from './engines.ts';
 import { loadEnv } from './env.ts';
-import { summarize } from './metrics.ts';
+import { isCorrect, summarize } from './metrics.ts';
 import { RateLimiter } from './rate-limit.ts';
 import { renderSummaryTable, writeReport } from './report.ts';
 import { runBenchmark } from './runner.ts';
@@ -102,7 +102,7 @@ async function main(): Promise<void> {
     ...(options.rpm === undefined ? {} : { rateLimiter: new RateLimiter(options.rpm) }),
     onResult: (result) => {
       done++;
-      const mark = result.exactMatch || result.renderMatch ? 'ok  ' : 'miss';
+      const mark = isCorrect(result) ? 'ok  ' : 'miss';
       const error = result.error === undefined ? '' : ` (${result.error.slice(0, 200)})`;
       console.error(`[${done}/${total}] ${mark} ${result.engine} ${result.sampleId}${error}`);
     },

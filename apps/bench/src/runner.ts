@@ -15,8 +15,9 @@ export interface SampleResult {
   readonly error?: string;
   readonly renders: boolean;
   readonly exactMatch: boolean;
-  readonly renderMatch: boolean;
-  readonly normalizedEditDistance: number;
+  readonly symbolMatch: boolean;
+  readonly tokenEditDistance: number;
+  readonly symbolEditDistance: number;
   readonly latencyMs: number;
   readonly costUsd: number;
 }
@@ -57,14 +58,14 @@ export async function runBenchmark(options: RunBenchmarkOptions): Promise<Sample
 
 export function scoreSample(
   engine: EngineName,
-  sample: Sample,
+  sample: Pick<Sample, 'id' | 'latex' | 'category'>,
   output: Awaited<ReturnType<BenchRunner['run']>>,
   latencyMs: number,
 ): SampleResult {
   const prediction = output.latex;
   const comparison =
     prediction === null
-      ? { exactMatch: false, renderMatch: false, normalizedEditDistance: 1 }
+      ? { exactMatch: false, symbolMatch: false, tokenEditDistance: 1, symbolEditDistance: 1 }
       : compareLatex(prediction, sample.latex);
 
   return {
