@@ -3,6 +3,7 @@ import pLimit from 'p-limit';
 
 import { type Sample, readSampleImage } from './dataset.ts';
 import type { BenchRunner, EngineName } from './engines.ts';
+import type { RateLimiter } from './rate-limit.ts';
 
 export interface SampleResult {
   readonly engine: EngineName;
@@ -25,6 +26,8 @@ export interface RunBenchmarkOptions {
   readonly runners: readonly BenchRunner[];
   /** Maximum in-flight requests across all engines. */
   readonly concurrency: number;
+  /** Optional throttle shared by all runners, for provider requests-per-minute quotas. */
+  readonly rateLimiter?: RateLimiter;
   readonly onResult?: (result: SampleResult) => void;
   readonly now?: () => number;
 }
@@ -39,6 +42,7 @@ export async function runBenchmark(options: RunBenchmarkOptions): Promise<Sample
     samples.map((sample) =>
       limit(async () => {
         const image = await readSampleImage(sample);
+        await options.rateLimiter?.acquire();
         const startedAt = now();
         const output = await runner.run(image);
         const result = scoreSample(runner.name, sample, output, now() - startedAt);

@@ -5,7 +5,8 @@
   "description": "Accuracy and latency benchmark for Snip OCR engines.",
   "type": "module",
   "scripts": {
-    "start": "tsx src/cli.ts"
+    "start": "tsx src/cli.ts",
+    "import:unimer": "tsx src/import-unimer.ts"
   },
   "dependencies": {
     "@snip/engine": "*",

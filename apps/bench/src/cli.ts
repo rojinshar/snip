@@ -1,10 +1,12 @@
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { UsageError, positiveInt } from './cli-args.ts';
 import { DatasetError, loadDataset } from './dataset.ts';
 import { ENGINE_NAMES, EngineConfigError, createRunners, isEngineName } from './engines.ts';
 import { loadEnv } from './env.ts';
 import { summarize } from './metrics.ts';
+import { RateLimiter } from './rate-limit.ts';
 import { renderSummaryTable, writeReport } from './report.ts';
 import { runBenchmark } from './runner.ts';
 
@@ -21,6 +23,7 @@ Options:
                         (default: ${DEFAULT_ENGINES})
   --concurrency <n>     Max in-flight requests (default: 4)
   --limit <n>           Only run the first n samples
+  --rpm <n>             Max requests started per minute (free tier: 15 per model)
   --out <dir>           Output directory (default: <repo>/results/<timestamp>)
   -h, --help            Show this help
 
@@ -31,11 +34,8 @@ interface CliOptions {
   readonly engines: (typeof ENGINE_NAMES)[number][];
   readonly concurrency: number;
   readonly limit: number | undefined;
+  readonly rpm: number | undefined;
   readonly outDir: string;
-}
-
-class UsageError extends Error {
-  override readonly name = 'UsageError';
 }
 
 const CLI_OPTIONS = {
@@ -43,6 +43,7 @@ const CLI_OPTIONS = {
   engines: { type: 'string', default: DEFAULT_ENGINES },
   concurrency: { type: 'string', default: '4' },
   limit: { type: 'string' },
+  rpm: { type: 'string' },
   out: { type: 'string' },
   help: { type: 'boolean', short: 'h', default: false },
 } as const;
@@ -70,16 +71,9 @@ function parseCli(argv: string[], startedAt: Date): CliOptions | null {
     engines: engines.filter(isEngineName),
     concurrency: positiveInt('--concurrency', values.concurrency),
     limit: values.limit === undefined ? undefined : positiveInt('--limit', values.limit),
+    rpm: values.rpm === undefined ? undefined : positiveInt('--rpm', values.rpm),
     outDir: path.resolve(REPO_ROOT, values.out ?? path.join('results', stamp)),
   };
-}
-
-function positiveInt(flag: string, raw: string): number {
-  const value = Number(raw);
-  if (!Number.isInteger(value) || value < 1) {
-    throw new UsageError(`${flag} must be a positive integer`);
-  }
-  return value;
 }
 
 async function main(): Promise<void> {
@@ -105,6 +99,7 @@ async function main(): Promise<void> {
     samples,
     runners,
     concurrency: options.concurrency,
+    ...(options.rpm === undefined ? {} : { rateLimiter: new RateLimiter(options.rpm) }),
     onResult: (result) => {
       done++;
       const mark = result.exactMatch || result.renderMatch ? 'ok  ' : 'miss';

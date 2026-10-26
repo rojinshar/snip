@@ -49,3 +49,36 @@ handwritten and multi-line. Some tips:
   sources that render to identical MathML as a match.
 - Aim for roughly 120 printed, 40 handwritten and 40 multi-line so each category has enough
   samples to compare.
+
+## UniMER-Test (public benchmark)
+
+[UniMER-Test](https://huggingface.co/datasets/wanderkid/UniMER_Dataset) (Apache-2.0) has
+23,757 labelled formula images in four subsets, imported under these categories:
+
+| Subset | Category          | What it is                              |
+| ------ | ----------------- | --------------------------------------- |
+| `spe`  | `simple-printed`  | Short, clean printed formulas           |
+| `cpe`  | `complex-printed` | Long, multi-line printed formulas       |
+| `sce`  | `screen-capture`  | Screenshots with noise and varied fonts |
+| `hwe`  | `handwritten`     | Handwritten formulas (photos and scans) |
+
+```sh
+# From apps/bench/data (about 150 MB, extracted under unimer-test/raw/)
+mkdir -p unimer-test/raw && cd unimer-test
+curl -L -o UniMER-Test.zip https://huggingface.co/datasets/wanderkid/UniMER_Dataset/resolve/main/UniMER-Test.zip
+unzip -q UniMER-Test.zip -d raw
+
+# From the repo root: sample 25 per subset (reproducible by seed), then benchmark
+npm run bench:import-unimer -- --per-subset 25 --seed 42
+npm run bench -- --dataset data/unimer-test/manifest.jsonl --rpm 14
+```
+
+Things to know when reading results:
+
+- Labels are written in one fixed LaTeX style (`\begin{array}`, `\mathrm{...}`,
+  `\operatorname*{det}`). Models often produce equivalent but different source
+  (`\begin{aligned}`, `\text{...}`, `\det`), so exact match understates real accuracy.
+  Read the misses table before trusting the headline number.
+- Some labels are wrong. For example, handwritten `hwe/0000001.png` shows `NaOH` but is
+  labelled `NaCH`.
+- Labels KaTeX cannot render are skipped during import and reported in its output.
