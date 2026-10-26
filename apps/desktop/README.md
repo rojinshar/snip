@@ -49,7 +49,9 @@ SNIP_E2E_IMAGE=/path/to/equation.png cargo test --release e2e -- --ignored --noc
    Snip into Applications.
 3. Launch Snip from Applications. It lives in the menu bar (∫) and has no Dock icon.
 
-Local builds are ad-hoc signed, which needs no Apple Developer account. Because of that:
+Local builds are ad-hoc signed (`signingIdentity: "-"` in `tauri.conf.json`), which seals the
+whole bundle without an Apple Developer account. Without it, the bundle's signature is
+incomplete and macOS can refuse to open it from Finder. Because the signature is ad-hoc:
 
 - **First launch:** macOS may say it can't verify the developer. Open **System Settings →
   Privacy & Security** and click **Open Anyway**.
