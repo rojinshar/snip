@@ -5,6 +5,9 @@ description = "Local HTTP server that runs UniMERNet for Snip's OCR engine."
 requires-python = ">=3.10,<3.12"
 dependencies = [
   "unimernet==0.2.3",
+  # Imported directly by the recognizer; listed here so [tool.uv.sources] applies to them.
+  "torch>=2.2.2",
+  "torchvision>=0.17.2",
   "fastapi>=0.115",
   "uvicorn>=0.30",
   "python-multipart>=0.0.9",
@@ -20,6 +23,17 @@ package = false
 # unimernet 0.2.3's dependency tree resolves to NumPy 1.x, but pyarrow >= 18 (pulled in
 # via evaluate -> datasets) requires NumPy 2 at import time. Cap it until unimernet updates.
 constraint-dependencies = ["pyarrow<18"]
+
+# On Linux (the Pi, CPU servers) use PyTorch's CPU-only builds. The default PyPI wheels pull
+# in several GB of NVIDIA CUDA libraries that a CPU host never uses. macOS stays on PyPI.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+torchvision = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.ruff]
 line-length = 100
