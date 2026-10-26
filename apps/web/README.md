@@ -8,7 +8,7 @@ Tailwind CSS, and deployed to Cloudflare Workers with the
 
 ```sh
 cp apps/web/.env.example apps/web/.env.local   # add DATABASE_URL (optional for UI work)
-npm run dev:web                                # http://localhost:3000
+npm run dev:web                                # http://localhost:3100
 ```
 
 Without `DATABASE_URL` the page works, but the form returns "Sign-ups are temporarily
