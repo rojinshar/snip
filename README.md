@@ -12,7 +12,7 @@ lands on your clipboard. Every result is checked with KaTeX before you see it.
 ```
 apps/
   bench/    accuracy, latency and cost benchmark for the engines
-  web/      (planned) Next.js: landing page, sign-in, account and billing pages
+  web/      Next.js landing page + waitlist (Cloudflare, Neon); later sign-in and billing
   api/      (planned) Express: auth, snip quotas, Stripe, serves OCR via the engine
   desktop/  (planned) Tauri hotkey capture app
   unimernet-server/  Python: self-hosted UniMERNet model served over HTTP

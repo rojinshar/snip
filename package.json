@@ -12,7 +12,7 @@
     "node": ">=20.12"
   },
   "scripts": {
-    "typecheck": "tsc -b",
+    "typecheck": "tsc -b && npm run typecheck --workspace @snip/web",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -21,12 +21,14 @@
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
     "bench": "npm run start --workspace @snip/bench --",
     "bench:import-unimer": "npm run import:unimer --workspace @snip/bench --",
-    "bench:rescore": "npm run rescore --workspace @snip/bench --"
+    "bench:rescore": "npm run rescore --workspace @snip/bench --",
+    "dev:web": "npm run dev --workspace @snip/web"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@types/node": "^20.19.43",
     "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.3",
     "eslint-config-prettier": "^9.1.2",
     "globals": "^17.13.0",
     "prettier": "^3.9.10",

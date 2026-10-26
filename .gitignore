@@ -25,6 +25,13 @@ __pycache__/
 .ruff_cache/
 apps/unimernet-server/models/
 
+# Next.js / Cloudflare (apps/web)
+.next/
+.open-next/
+.wrangler/
+.dev.vars
+next-env.d.ts
+
 # Tooling
 coverage/
 .vitest/

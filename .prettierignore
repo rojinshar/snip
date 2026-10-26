@@ -3,5 +3,9 @@ dist
 coverage
 package-lock.json
 results
+.next
+.open-next
+.wrangler
+next-env.d.ts
 .venv
 apps/unimernet-server/models

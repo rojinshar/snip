@@ -1,10 +1,23 @@
 import js from '@eslint/js';
+import nextCoreWebVitals from 'eslint-config-next/core-web-vitals';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['**/node_modules/**', '**/dist/**', '**/coverage/**', 'results/**', '**/.venv/**'] },
+  {
+    ignores: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/coverage/**',
+      'results/**',
+      '**/.venv/**',
+      '**/.next/**',
+      '**/.open-next/**',
+      '**/.wrangler/**',
+      '**/next-env.d.ts',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   {
@@ -24,8 +37,14 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
+  // Next.js and React rules for the website only.
+  ...nextCoreWebVitals.map((config) => ({
+    ...config,
+    files: ['apps/web/**/*.{ts,tsx}'],
+    settings: { ...config.settings, next: { rootDir: 'apps/web' } },
+  })),
   {
-    files: ['**/*.js'],
+    files: ['**/*.js', '**/*.mjs'],
     ...tseslint.configs.disableTypeChecked,
   },
   prettier,
