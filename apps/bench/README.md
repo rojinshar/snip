@@ -40,7 +40,7 @@ Each run writes to `apps/bench/results/<timestamp>/`:
 - **Edit dist:** token-level Levenshtein distance divided by reference length, capped at 1.
   Lower is better, and it shows how close the misses are.
 - **p50 / p95 ms:** wall-clock time per request, including retries.
-- **$/snip:** computed from reported token usage and list prices in `@snip/core`.
+- **$/snip:** computed from reported token usage and list prices in `@snip/engine`.
 
 Latency is measured under `--concurrency` parallel requests. To get numbers closer to what a
 single user sees, run with `--concurrency 1`.

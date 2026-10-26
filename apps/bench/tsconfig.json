@@ -5,5 +5,5 @@
     "outDir": "../../node_modules/.cache/tsc/bench"
   },
   "include": ["src", "test"],
-  "references": [{ "path": "../../packages/core" }]
+  "references": [{ "path": "../../packages/engine" }]
 }

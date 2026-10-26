@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { validateLatex } from '@snip/core';
+import { validateLatex } from '@snip/engine';
 import { describe, expect, it } from 'vitest';
 
 import { loadDataset } from '../src/dataset.ts';

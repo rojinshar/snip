@@ -7,15 +7,17 @@ lands on your clipboard. Every result is checked with KaTeX before you see it.
 
 ## Repository layout
 
+`apps/` holds deployable or runnable programs; `packages/` holds libraries they share.
+
 ```
-packages/
-  core/     OCR engines (Gemini, Mathpix), model router, LaTeX validation and scoring
 apps/
   bench/    accuracy, latency and cost benchmark for the engines
+  web/      (planned) landing page, sign-in, account and billing pages
+  api/      (planned) backend: auth, snip quotas, Stripe, serves OCR via the engine
+  desktop/  (planned) Tauri hotkey capture app
+packages/
+  engine/   OCR engines (Gemini, Mathpix), model router, LaTeX validation and scoring
 ```
-
-Planned: `apps/api` (Node + TypeScript API: auth, quotas, Stripe) and `apps/desktop`
-(Tauri capture app).
 
 ## Requirements
 

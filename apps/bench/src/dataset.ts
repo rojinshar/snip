@@ -1,7 +1,7 @@
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { ImageMimeType, OcrImage } from '@snip/core';
+import type { ImageMimeType, OcrImage } from '@snip/engine';
 import { z } from 'zod';
 
 export const CATEGORIES = ['printed', 'handwritten', 'multiline'] as const;

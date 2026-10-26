@@ -5,7 +5,7 @@ import {
   type OcrEngine,
   type OcrImage,
   OcrRouter,
-} from '@snip/core';
+} from '@snip/engine';
 
 import type { BenchEnv } from './env.ts';
 

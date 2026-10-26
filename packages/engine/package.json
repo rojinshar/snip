@@ -1,5 +1,5 @@
 {
-  "name": "@snip/core",
+  "name": "@snip/engine",
   "version": "0.0.0",
   "private": true,
   "description": "OCR engines, model router and LaTeX validation shared by Snip apps.",

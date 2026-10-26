@@ -1,4 +1,4 @@
-import { compareLatex, validateLatex } from '@snip/core';
+import { compareLatex, validateLatex } from '@snip/engine';
 import pLimit from 'p-limit';
 
 import { type Sample, readSampleImage } from './dataset.ts';
