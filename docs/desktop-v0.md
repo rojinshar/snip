@@ -81,14 +81,14 @@ edge to at most 2000 px, which is ample for equations and keeps uploads small.
 
 ### 5.2 `apps/api`
 
-| Concern    | Choice                                                                                                                                                |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Framework  | Express + TypeScript (`tsx` in dev)                                                                                                                   |
-| Body       | Raw image bytes (`image/png` or `image/jpeg`), up to 10 MB                                                                                            |
-| Engine     | `@snip/engine` router: Gemini 3.5 Flash-Lite, falling back to 3.8 Flash only when the output fails the KaTeX check; 8 s timeout and 1 retry per model |
-| Validation | KaTeX render check: invalid LaTeX is never returned                                                                                                   |
-| Config     | `GEMINI_API_KEY`, `PORT` (default 8790), from the root `.env`                                                                                         |
-| Logging    | One structured JSON line per request: id, status, ms, engine; no image data                                                                           |
+| Concern    | Choice                                                                                                                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework  | Express + TypeScript (`tsx` in dev)                                                                                                                                       |
+| Body       | Raw image bytes (`image/png` or `image/jpeg`), up to 10 MB                                                                                                                |
+| Engine     | `@snip/engine` router: Gemini 3.5 Flash-Lite, falling back to 3.8 Flash only when the output fails the KaTeX check; 10 s timeout (Gemini's minimum) and 1 retry per model |
+| Validation | KaTeX render check: invalid LaTeX is never returned                                                                                                                       |
+| Config     | `GEMINI_API_KEY`, `PORT` (default 8790), from the root `.env`                                                                                                             |
+| Logging    | One structured JSON line per request: id, status, ms, engine; no image data                                                                                               |
 
 **API contract (v0):**
 
@@ -182,7 +182,7 @@ Each milestone is one branch and one PR-sized change, merged when checks pass an
 | ----------------------------------------------------- | ---------- | ------------------------------------------------------------------- |
 | Screen Recording re-prompts on every dev rebuild      | High       | Accept for v0; signing in a later phase fixes it                    |
 | `screencapture -i` behavior changes in a macOS update | Low        | Capture is behind one Rust function; can switch to ScreenCaptureKit |
-| Gemini latency spikes or outages                      | Medium     | 8 s timeout, 1 retry, clear error; the engine is swappable          |
+| Gemini latency spikes or outages                      | Medium     | 10 s timeout, 1 retry, clear error; the engine is swappable         |
 | Hotkey conflicts with other apps                      | Medium     | Configurable; registration failure surfaced in the UI               |
 
 ## 13. Decisions

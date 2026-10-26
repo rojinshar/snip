@@ -17,6 +17,7 @@ export interface GeminiEngineConfig {
   readonly model: string;
   readonly apiKey: string;
   readonly pricing: TokenPricing;
+  /** Request deadline. Gemini rejects values under 10 s with 400 INVALID_ARGUMENT. */
   readonly timeoutMs?: number;
   readonly retryPolicy?: RetryPolicy;
   /**

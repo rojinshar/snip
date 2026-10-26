@@ -13,7 +13,7 @@ lands on your clipboard. Every result is checked with KaTeX before you see it.
 apps/
   bench/    accuracy, latency and cost benchmark for the engines
   web/      Next.js landing page + waitlist (Cloudflare, Neon); later sign-in and billing
-  api/      (planned) Express: auth, snip quotas, Stripe, serves OCR via the engine
+  api/      Express API: POST /v1/recognize via the engine (auth, quotas, Stripe later)
   desktop/  Tauri macOS menu-bar app (M1: hotkey + region capture)
   unimernet-server/  Python: self-hosted UniMERNet model served over HTTP
 packages/
