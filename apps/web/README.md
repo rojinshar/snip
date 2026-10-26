@@ -37,17 +37,30 @@ stored in `waitlist_signups.source`. Use lowercase letters, digits and dashes.
 
 ## Deploy (Cloudflare)
 
-Wrangler needs Node.js 22+ (the repo's `.nvmrc`). For local secrets used by `npm run preview`,
-copy `DATABASE_URL` into `apps/web/.dev.vars` (git-ignored).
+**Automatic:** every push to `main` is built and deployed by Cloudflare Workers Builds
+(Cloudflare dashboard, Workers & Pages, `snip-web`, Settings, Build). It is configured as:
+
+| Setting        | Value                                                               |
+| -------------- | ------------------------------------------------------------------- |
+| Root directory | `/` (the repo root, so dependencies install from the root lockfile) |
+| Build command  | `cd apps/web && npx opennextjs-cloudflare build`                    |
+| Deploy command | `cd apps/web && npx opennextjs-cloudflare deploy`                   |
+| Build variable | `NODE_VERSION=22`                                                   |
+| Preview builds | off (they would share the production database)                      |
+
+Runtime secrets live on the Worker (`npx wrangler secret put DATABASE_URL`) and are kept
+across deploys.
+
+**Manual** (Node 22+, the repo's `.nvmrc`):
 
 ```sh
 cd apps/web
 npx wrangler login
-npx wrangler secret put DATABASE_URL     # paste the Neon connection string
-npm run deploy                           # opennextjs-cloudflare build + deploy
+npm run deploy           # opennextjs-cloudflare build + deploy
 ```
 
-`npm run preview` runs the production build locally on the Workers runtime.
+`npm run preview` runs the production build locally on the Workers runtime. It reads local
+secrets from `apps/web/.dev.vars` (git-ignored).
 
 ## Code layout
 
