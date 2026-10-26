@@ -34,6 +34,7 @@ class HealthResponse(BaseModel):
     model: str
     revision: str
     device: str
+    threads: int
 
 
 def create_app(load_recognizer: Callable[[], Recognizer]) -> FastAPI:
@@ -55,6 +56,7 @@ def create_app(load_recognizer: Callable[[], Recognizer]) -> FastAPI:
             model=MODEL_REPO,
             revision=MODEL_REVISION,
             device=state["recognizer"].device,
+            threads=state["recognizer"].threads,
         )
 
     @app.post("/v1/recognize")

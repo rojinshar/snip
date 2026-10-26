@@ -10,6 +10,7 @@ from snip_unimernet.server import MAX_IMAGE_BYTES, create_app
 
 class FakeRecognizer:
     device = "cpu"
+    threads = 2
 
     def __init__(self) -> None:
         self.seen: list[tuple[int, int]] = []
@@ -67,3 +68,4 @@ def test_healthz_reports_device(client: TestClient) -> None:
     body = client.get("/healthz").json()
     assert body["status"] == "ok"
     assert body["device"] == "cpu"
+    assert body["threads"] == 2

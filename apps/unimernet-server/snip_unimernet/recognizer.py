@@ -29,6 +29,7 @@ class Recognizer(Protocol):
     """Anything that turns an image into LaTeX. Lets the server be tested without the model."""
 
     device: str
+    threads: int
 
     def recognize(self, image: Image.Image) -> Recognition: ...
 
@@ -38,6 +39,22 @@ def summarize_log_probs(log_probs: list[float]) -> tuple[float, float]:
     if not log_probs:
         return 0.0, 0.0
     return math.exp(sum(log_probs) / len(log_probs)), math.exp(min(log_probs))
+
+
+def configure_threads() -> int:
+    """Applies SNIP_UNIMERNET_THREADS (CPU inference threads) if set; returns the thread count.
+
+    Useful to approximate small servers, e.g. 2 threads for a 2-vCPU VPS. Must run before
+    the model does any work, because PyTorch fixes its inter-op pool on first use.
+    """
+    raw = os.environ.get("SNIP_UNIMERNET_THREADS")
+    if raw:
+        threads = int(raw)
+        if threads < 1:
+            raise ValueError("SNIP_UNIMERNET_THREADS must be a positive integer")
+        torch.set_num_threads(threads)
+        torch.set_num_interop_threads(1)
+    return torch.get_num_threads()
 
 
 def pick_device() -> str:
@@ -65,6 +82,7 @@ class UnimernetRecognizer:
         from unimernet.common.registry import registry
         from unimernet.processors import load_processor
 
+        self.threads = configure_threads()
         self.device = device or pick_device()
         model_cfg = OmegaConf.create(
             {

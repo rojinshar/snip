@@ -19,6 +19,10 @@ uv run uvicorn main:app --port 8765  # loads the model, then listens
 Device selection: Apple GPU (MPS), then CUDA, then CPU. Override it with
 `SNIP_UNIMERNET_DEVICE=cpu`.
 
+To approximate a small server, limit CPU threads with `SNIP_UNIMERNET_THREADS=2`.
+UniMERNet-Tiny decodes one token at a time, so per-core speed matters more than core count.
+On an M5 Pro, 2 threads was slightly faster than the default 6.
+
 ## API
 
 | Method | Path            | Body                    | Response                              |
