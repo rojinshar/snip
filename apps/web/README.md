@@ -16,14 +16,15 @@ unavailable."
 
 ## Database
 
-Create a free Neon project, copy its connection string into `DATABASE_URL`, then apply the
-migration once:
+Put the Neon connection string in `apps/web/.env.local` as `DATABASE_URL` (git-ignored),
+then apply migrations:
 
 ```sh
-psql "$DATABASE_URL" -f apps/web/db/migrations/0001_create_waitlist_signups.sql
+npm run db:migrate --workspace @snip/web
 ```
 
-You can also paste the file into Neon's SQL editor. To read sign-ups:
+`db:migrate` applies `db/migrations/*.sql` in order, records them in `schema_migrations`,
+and skips any that already ran, so it is safe to re-run. To read sign-ups:
 
 ```sql
 SELECT email, source, created_at FROM waitlist_signups ORDER BY created_at DESC;
