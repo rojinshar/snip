@@ -8,7 +8,7 @@ import express, {
   type Response,
 } from 'express';
 
-import { type AccessLimits, decideAccess, quotaResetsAt } from './access.ts';
+import { type AccessDecision, type AccessLimits, decideAccess, quotaResetsAt } from './access.ts';
 import type { AccessStore } from './access-store.ts';
 import { bearerToken } from './auth.ts';
 import { detectImageType } from './image.ts';
@@ -117,25 +117,38 @@ export function createApp(deps: AppDeps): Express {
     });
   });
 
-  // Runs before the body is read, so a rejected upload costs neither bandwidth nor Gemini.
-  const requireAccess = async (req: Request, res: Response, next: NextFunction) => {
-    if (!access) {
-      next();
-      return;
+  // Started as soon as the request arrives, so the database round trip overlaps with the image
+  // upload. Gemini is only called after the key is approved (awaitAccess), so a rejected key
+  // never costs a recognition.
+  const pendingAccess = new WeakMap<Response, Promise<AccessDecision>>();
+  const startAccessCheck = (req: Request, res: Response, next: NextFunction) => {
+    if (access) {
+      const token = bearerToken(req.headers.authorization);
+      const lookup =
+        token === null ? Promise.resolve(null) : access.store.usage(hashAccessKey(token));
+      const check = lookup.then((usage) => decideAccess(usage, access.limits));
+      // Awaited later; if the upload fails first, nothing awaits it.
+      check.catch(() => undefined);
+      pendingAccess.set(res, check);
     }
-    const token = bearerToken(req.headers.authorization);
-    const usage = token === null ? null : await access.store.usage(hashAccessKey(token));
-    const decision = decideAccess(usage, access.limits);
+    next();
+  };
+
+  /** Sends the rejection and returns false when this key may not recognize right now. */
+  const awaitAccess = async (res: Response): Promise<boolean> => {
+    const check = pendingAccess.get(res);
+    if (!check) return true;
+    const decision = await check;
     if (!decision.ok) {
       if (decision.error === 'quota_exceeded') {
         sendError(res, decision.error, { resetsAt: quotaResetsAt(clock()).toISOString() });
       } else {
         sendError(res, decision.error);
       }
-      return;
+      return false;
     }
     res.locals.keyId = decision.keyId;
-    next();
+    return true;
   };
 
   // Every recognition that reached Gemini is recorded, successful or not: each one cost money.
@@ -164,9 +177,10 @@ export function createApp(deps: AppDeps): Express {
   // The body is the raw image. Its type is checked from its bytes, not the header.
   app.post(
     '/v1/recognize',
-    requireAccess,
+    startAccessCheck,
     express.raw({ type: () => true, limit: MAX_IMAGE_BYTES }),
     async (req: Request, res: Response) => {
+      if (!(await awaitAccess(res))) return;
       const body: unknown = req.body;
       const data = Buffer.isBuffer(body) ? body : Buffer.alloc(0);
       const mimeType = detectImageType(data);
