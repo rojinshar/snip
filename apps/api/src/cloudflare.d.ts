@@ -5,6 +5,8 @@
 declare module 'cloudflare:workers' {
   /** The Worker's bindings: vars and secrets from wrangler.jsonc and `wrangler secret`. */
   export const env: Readonly<Record<string, unknown>>;
+  /** Extends the current request's lifetime until `promise` settles. */
+  export function waitUntil(promise: Promise<unknown>): void;
 }
 
 declare module 'cloudflare:node' {

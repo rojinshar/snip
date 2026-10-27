@@ -12,7 +12,11 @@ export interface AttemptSummary {
   readonly retries?: number;
 }
 
-export type RecognizeResult = { readonly attempts: readonly AttemptSummary[] } & (
+export type RecognizeResult = {
+  readonly attempts: readonly AttemptSummary[];
+  /** Total provider cost across every attempt. */
+  readonly costUsd: number;
+} & (
   | { readonly ok: true; readonly latex: string; readonly engine: string }
   | { readonly ok: false; readonly error: RecognizeErrorCode; readonly detail: string }
 );
@@ -44,7 +48,13 @@ export function toRecognizeResult(result: RouterResult): RecognizeResult {
     ...(a.retries ? { retries: a.retries } : {}),
   }));
   if (result.status === 'ok') {
-    return { ok: true, latex: result.latex, engine: result.engineId, attempts };
+    return {
+      ok: true,
+      latex: result.latex,
+      engine: result.engineId,
+      attempts,
+      costUsd: result.costUsd,
+    };
   }
   const detail = result.attempts.map((a) => `${a.engineId}: ${a.detail ?? a.outcome}`).join('; ');
   const anyEngineErrored = result.attempts.some((attempt) => attempt.outcome === 'error');
@@ -53,5 +63,6 @@ export function toRecognizeResult(result: RouterResult): RecognizeResult {
     error: anyEngineErrored ? 'upstream_failed' : 'no_math_found',
     detail,
     attempts,
+    costUsd: result.costUsd,
   };
 }

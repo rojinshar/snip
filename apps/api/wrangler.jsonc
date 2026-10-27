@@ -9,6 +9,8 @@
   // The only public URL. workers.dev and per-version preview URLs are off.
   "routes": [{ "pattern": "api.snip.rojinsharma.com", "custom_domain": true }],
   "preview_urls": false,
-  // Secrets (set with `wrangler secret put`, never committed): GEMINI_API_KEY, SNIP_OWNER_KEY.
+  // Limits (docs/beta-v1.md §5). Change here and deploy.
+  "vars": { "RATE_LIMIT_PER_MINUTE": "10", "DAILY_SPEND_CAP_USD": "2" },
+  // Secrets (set with `wrangler secret put`, never committed): GEMINI_API_KEY, DATABASE_URL.
   // Local `wrangler dev` reads them from .dev.vars.
 }
