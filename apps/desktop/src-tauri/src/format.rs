@@ -1,8 +1,10 @@
 //! How recognized LaTeX is written to the clipboard and shown in notifications.
 
-/// Delimiters wrapped around the LaTeX (docs/desktop-v0.md §6). Configurable in M5.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-#[allow(dead_code)] // Display variants are selectable once settings land in M5.
+use serde::{Deserialize, Serialize};
+
+/// Delimiters wrapped around the LaTeX (docs/desktop-v0.md §6), chosen in settings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum Delimiters {
     #[default]
     InlineDollar,

@@ -7,6 +7,8 @@ mod format;
 mod image_prep;
 mod metrics;
 mod permissions;
+mod settings;
+mod settings_window;
 
 use std::fs;
 use std::process::Command;
@@ -15,22 +17,18 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use api::{ApiClient, ApiError};
 use capture::{capture_region, CaptureOutcome};
-use format::{preview, wrap, Delimiters};
+use format::{preview, wrap};
 use metrics::SnipTimings;
+use settings_window::SettingsState;
 use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, Wry};
 use tauri_plugin_clipboard_manager::ClipboardExt;
-use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+use tauri_plugin_global_shortcut::ShortcutState;
 use tauri_plugin_notification::NotificationExt;
 
 const TRAY_ID: &str = "main";
-
-/// Default hotkey ⌘⇧2 (docs/desktop-v0.md §13). Configurable in M5.
-fn snip_shortcut() -> Shortcut {
-    Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::Digit2)
-}
 
 struct SnipState {
     /// Prevents a second snip from starting while one is in progress.
@@ -70,8 +68,9 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(|app, shortcut, event| {
-                    if event.state() == ShortcutState::Pressed && *shortcut == snip_shortcut() {
+                // Snip registers exactly one shortcut: the hotkey from settings.
+                .with_handler(|app, _shortcut, event| {
+                    if event.state() == ShortcutState::Pressed {
                         start_snip(app.clone());
                     }
                 })
@@ -87,17 +86,34 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
-            build_tray(app.handle())?;
-            if let Err(error) = app.global_shortcut().register(snip_shortcut()) {
-                log::error!("could not register ⌘⇧2: {error}");
+            let settings_path = app.path().app_config_dir()?.join(settings::FILE_NAME);
+            let current = settings::load(&settings_path);
+            let snip_item = build_tray(app.handle(), &current.hotkey)?;
+            app.manage(SettingsState::new(settings_path, current, snip_item));
+            if settings_window::register_current_hotkey(app.handle()).is_err() {
                 notify(
                     app.handle(),
-                    "Snip",
-                    "⌘⇧2 is taken by another app. Use the menu-bar icon.",
+                    "Snip's hotkey is taken",
+                    "Another app is using it. Choose a new one in Settings, or use the menu-bar icon.",
                 );
             }
             log::info!("Snip ready");
             Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            settings_window::get_settings,
+            settings_window::set_hotkey,
+            settings_window::set_delimiters,
+            settings_window::pause_hotkey,
+            settings_window::resume_hotkey,
+        ])
+        .on_window_event(|window, event| {
+            // Closing the window mid-recording must not leave Snip without a hotkey.
+            if window.label() == settings_window::WINDOW_LABEL
+                && matches!(event, tauri::WindowEvent::Destroyed)
+            {
+                let _ = settings_window::register_current_hotkey(window.app_handle());
+            }
         })
         .build(tauri::generate_context!())
         .expect("failed to build Snip")
@@ -112,14 +128,11 @@ pub fn run() {
         });
 }
 
-fn build_tray(app: &AppHandle) -> tauri::Result<()> {
-    let snip = MenuItem::with_id(
-        app,
-        "snip",
-        "Snip Equation",
-        true,
-        Some("CmdOrCtrl+Shift+2"),
-    )?;
+/// Builds the menu-bar icon and menu. Returns the Snip Equation item so its shortcut label
+/// can follow the hotkey setting.
+fn build_tray(app: &AppHandle, hotkey: &str) -> tauri::Result<MenuItem<Wry>> {
+    let snip = MenuItem::with_id(app, "snip", "Snip Equation", true, Some(hotkey))?;
+    let settings = MenuItem::with_id(app, "settings", "Settings…", true, Some("Cmd+Comma"))?;
     // macOS only applies a new Screen Recording grant after the app relaunches.
     let restart = MenuItem::with_id(app, "restart", "Restart Snip", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit Snip", true, Some("CmdOrCtrl+Q"))?;
@@ -136,6 +149,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
         &[
             &snip,
             &PredefinedMenuItem::separator(app)?,
+            &settings,
             &version,
             &restart,
             &quit,
@@ -152,12 +166,13 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
         .show_menu_on_left_click(true)
         .on_menu_event(|app, event| match event.id().as_ref() {
             "snip" => start_snip(app.clone()),
+            "settings" => settings_window::open(app),
             "restart" => app.restart(),
             "quit" => app.exit(0),
             _ => {}
         })
         .build(app)?;
-    Ok(())
+    Ok(snip)
 }
 
 fn start_snip(app: AppHandle) {
@@ -258,7 +273,8 @@ fn recognize_capture(
     timings.server_ms = Some(recognition.ms);
     timings.engine = Some(recognition.engine.clone());
 
-    let text = wrap(&recognition.latex, Delimiters::default());
+    let delimiters = app.state::<SettingsState>().current().delimiters;
+    let text = wrap(&recognition.latex, delimiters);
     match app.clipboard().write_text(text.clone()) {
         Ok(()) => SnipResult::Copied { text },
         Err(error) => SnipResult::Failed(Failure::Clipboard(error.to_string())),
@@ -391,13 +407,5 @@ mod tests {
         assert!(body.contains("Screen Recording"));
         // A grant only takes effect after a relaunch, so the message must say so.
         assert!(body.contains("Restart Snip"));
-    }
-
-    #[test]
-    fn shortcut_is_cmd_shift_2() {
-        assert_eq!(
-            snip_shortcut(),
-            Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::Digit2)
-        );
     }
 }
