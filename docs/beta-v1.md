@@ -146,7 +146,7 @@ Each is one branch and one PR-sized change.
 
 | #   | Milestone                                                                                | Proves                                |
 | --- | ---------------------------------------------------------------------------------------- | ------------------------------------- |
-| B1  | API on Workers (Hono port, same tests), deployed on push; one owner key from a secret    | Hosting, latency, CPU time            |
+| B1  | API on Workers (Express kept, same tests), deployed on push; one owner key from a secret | Hosting, latency, CPU time            |
 | B2  | Access keys, `snips` table, quota, rate limit, spending cap, `GET /v1/me`, admin scripts | Costs are bounded per key and per day |
 | B3  | App: key in the Keychain, Settings field and usage, new errors, production URL           | A tester can set up alone             |
 | B4  | Developer ID signing and notarization; beta `.dmg`; QA on a second Mac                   | Installs like a real Mac app          |
