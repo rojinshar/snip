@@ -27,6 +27,7 @@ const keyInput = byId('key-input', HTMLInputElement);
 const keyRemove = byId('key-remove', HTMLButtonElement);
 const keyUsage = byId('key-usage', HTMLParagraphElement);
 const keySave = byId('key-save', HTMLButtonElement);
+const version = byId('version', HTMLParagraphElement);
 
 let settings: Settings | undefined;
 let recording = false;
@@ -149,3 +150,6 @@ keyRemove.addEventListener('click', () => void onKeyRemove());
 
 invoke<Settings>('get_settings').then(render, showError);
 invoke<AccessStatus>('get_access_status').then(renderAccess, showError);
+invoke<string>('get_version').then((v) => {
+  version.textContent = `Snip ${v}`;
+}, showError);
