@@ -26,13 +26,23 @@ export function Demo() {
   );
   const [started, setStarted] = useState(false);
   const [failed, setFailed] = useState(false);
+  // The browser refused to autoplay: Low Power Mode on iPhone, data saver, or a policy.
+  const [blocked, setBlocked] = useState(false);
 
   // Started from here rather than with the autoplay attribute: the server renders before it
   // knows the reduced-motion setting, and an autoplay attribute would start the video anyway.
   // The first render after hydration still reports the server's "no preference", so the
   // setting is read from the system here, not from that render.
   useEffect(() => {
-    if (!prefersReducedMotion()) void video.current?.play().catch(() => undefined);
+    const element = video.current;
+    if (!element || prefersReducedMotion()) return;
+    // iPhone Safari checks the muted attribute, not just the property, before it lets a
+    // video play without a tap; React only sets the property.
+    element.muted = true;
+    element.setAttribute('muted', '');
+    element.play().catch(() => {
+      setBlocked(true);
+    });
   }, [reducedMotion]);
 
   if (failed) {
@@ -43,7 +53,8 @@ export function Demo() {
     );
   }
 
-  const waitingForClick = reducedMotion && !started;
+  // Reduced motion waits for a tap on purpose; a refused autoplay needs one to start at all.
+  const waitingForClick = (reducedMotion || blocked) && !started;
 
   return (
     <figure className="mx-auto max-w-[720px]">
@@ -58,10 +69,14 @@ export function Demo() {
           preload="metadata"
           width={1600}
           height={1000}
-          controls={reducedMotion && started}
+          controls={(reducedMotion || blocked) && started}
           aria-label="Snip in use: press the hotkey over an equation in a PDF, then paste the LaTeX into Overleaf, where it compiles to the same equations"
           onError={() => {
             setFailed(true);
+          }}
+          // Whatever started playback, the play button is no longer needed.
+          onPlaying={() => {
+            setStarted(true);
           }}
           className="block h-auto w-full rounded-xl border border-slate-200"
         />
