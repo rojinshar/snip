@@ -1,5 +1,6 @@
 import { Demo } from '@/components/demo';
 import { FounderNote } from '@/components/founder-note';
+import { SiteFooter } from '@/components/site-chrome';
 import { WaitlistForm } from '@/components/waitlist-form';
 import {
   MATHPIX_CHECKED,
@@ -81,7 +82,7 @@ const faqs = [
   },
   {
     q: 'What happens to my screenshots?',
-    a: 'Each snip is sent to our recognition service to produce LaTeX and is not stored afterwards.',
+    a: 'Only the area you select is sent for recognition, and neither the image nor the LaTeX is stored. We keep usage counts per access key, nothing more. Details are on the privacy page.',
   },
   {
     q: 'Which platforms?',
@@ -89,7 +90,7 @@ const faqs = [
   },
   {
     q: 'When can I use it?',
-    a: "We're opening a private beta soon. Join the waitlist and we'll email you an invite.",
+    a: "The private beta is open to invited testers now. Join the waitlist and we'll email you an invite with your download link and access key.",
   },
 ];
 
@@ -273,9 +274,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="mx-auto max-w-5xl px-6 py-8 text-center text-sm text-slate-500">
-        © {new Date().getFullYear()} Snip
-      </footer>
+      <SiteFooter />
     </main>
   );
 }
