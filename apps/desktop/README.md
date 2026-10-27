@@ -9,8 +9,11 @@ was copied. While it works, `…` appears next to the menu-bar icon. **Settings�
 changes the hotkey and the delimiters; they are saved to
 `~/Library/Application Support/io.github.rojinshar.snip/settings.json`.
 
-The app needs the Snip API running: `npm run dev:api` in another terminal. It connects to
-`http://127.0.0.1:8790` by default; set `SNIP_API_URL` to change that.
+**API:** release builds (`npm run build:desktop`) use the hosted API at
+`https://api.snip.rojinsharma.com`, which needs an access key: paste it under **Settings… →
+Access key**. It is stored in the macOS Keychain, not in `settings.json`. Debug builds
+(`npm run dev:desktop`) use the local API (`npm run dev:api`, no key needed). `SNIP_API_URL`
+overrides either.
 
 ## Requirements
 

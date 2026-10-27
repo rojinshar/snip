@@ -7,6 +7,7 @@ use tauri::menu::MenuItem;
 use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder, Wry};
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
+use crate::access_key;
 use crate::format::Delimiters;
 use crate::settings::{self, parse_hotkey, Settings};
 
@@ -45,7 +46,7 @@ pub fn open(app: &AppHandle) {
     }
     let built = WebviewWindowBuilder::new(app, WINDOW_LABEL, WebviewUrl::default())
         .title("Snip Settings")
-        .inner_size(440.0, 390.0)
+        .inner_size(440.0, 500.0)
         .resizable(false)
         .maximizable(false)
         .minimizable(false)
@@ -146,6 +147,30 @@ pub fn pause_hotkey(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub fn resume_hotkey(app: AppHandle) -> Result<(), String> {
     register_current_hotkey(&app)
+}
+
+/// What Settings shows for the saved key (`snip_…k3q7`), never the key itself.
+#[tauri::command]
+pub fn get_access_key_hint() -> Option<String> {
+    access_key::load().map(|key| access_key::hint(&key))
+}
+
+#[tauri::command]
+pub fn set_access_key(key: String) -> Result<String, String> {
+    let key = access_key::normalize(&key).map_err(|error| error.message().to_string())?;
+    access_key::save(&key).map_err(|error| {
+        log::error!("could not save the access key: {error:?}");
+        error.message().to_string()
+    })?;
+    Ok(access_key::hint(&key))
+}
+
+#[tauri::command]
+pub fn clear_access_key() -> Result<(), String> {
+    access_key::delete().map_err(|error| {
+        log::error!("could not remove the access key: {error:?}");
+        error.message().to_string()
+    })
 }
 
 fn save_failed(error: std::io::Error) -> String {

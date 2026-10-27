@@ -118,6 +118,46 @@ code {
     monospace;
 }
 
+.key-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.key-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    12px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.key-form button {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+}
+
 .status {
   min-height: 1.4em;
   margin: 0;

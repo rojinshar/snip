@@ -8,6 +8,27 @@
   </head>
   <body>
     <main>
+      <section class="panel" aria-labelledby="key-label">
+        <div class="row">
+          <div>
+            <h2 id="key-label">Access key</h2>
+            <p id="key-state" class="hint">Not set</p>
+          </div>
+          <button id="key-remove" type="button" class="link" hidden>Remove</button>
+        </div>
+        <form id="key-form" class="key-form">
+          <input
+            id="key-input"
+            type="password"
+            placeholder="Paste your snip_ key"
+            autocomplete="off"
+            spellcheck="false"
+            aria-labelledby="key-label"
+          />
+          <button type="submit">Save</button>
+        </form>
+      </section>
+
       <section class="panel row">
         <div>
           <h2 id="hotkey-label">Hotkey</h2>

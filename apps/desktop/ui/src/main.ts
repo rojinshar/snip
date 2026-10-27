@@ -14,6 +14,10 @@ interface Settings {
 const hotkeyButton = byId('hotkey', HTMLButtonElement);
 const delimiterInputs = document.querySelectorAll<HTMLInputElement>('input[name="delimiters"]');
 const status = byId('status', HTMLParagraphElement);
+const keyState = byId('key-state', HTMLParagraphElement);
+const keyForm = byId('key-form', HTMLFormElement);
+const keyInput = byId('key-input', HTMLInputElement);
+const keyRemove = byId('key-remove', HTMLButtonElement);
 
 let settings: Settings | undefined;
 let recording = false;
@@ -32,6 +36,34 @@ function render(next: Settings): void {
 
 function showError(error: unknown): void {
   status.textContent = typeof error === 'string' ? error : 'Something went wrong. Try again.';
+}
+
+/** Shows the saved key's hint (`snip_…k3q7`), never the key. */
+function renderKey(hint: string | null): void {
+  keyState.textContent =
+    hint === null ? 'Not set. Paste the key from your invite.' : `Saved: ${hint}`;
+  keyRemove.hidden = hint === null;
+  keyInput.value = '';
+}
+
+async function onKeySubmit(event: SubmitEvent): Promise<void> {
+  event.preventDefault();
+  try {
+    renderKey(await invoke<string>('set_access_key', { key: keyInput.value }));
+    status.textContent = '';
+  } catch (error) {
+    showError(error);
+  }
+}
+
+async function onKeyRemove(): Promise<void> {
+  try {
+    await invoke('clear_access_key');
+    renderKey(null);
+    status.textContent = '';
+  } catch (error) {
+    showError(error);
+  }
 }
 
 async function startRecording(): Promise<void> {
@@ -92,4 +124,8 @@ for (const input of delimiterInputs) {
   input.addEventListener('change', (event) => void onDelimitersChange(event));
 }
 
+keyForm.addEventListener('submit', (event) => void onKeySubmit(event));
+keyRemove.addEventListener('click', () => void onKeyRemove());
+
 invoke<Settings>('get_settings').then(render, showError);
+invoke<string | null>('get_access_key_hint').then(renderKey, showError);

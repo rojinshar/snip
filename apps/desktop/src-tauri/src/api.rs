@@ -1,12 +1,15 @@
-//! Client for the Snip API's `POST /v1/recognize` (contract: docs/desktop-v0.md §5.2).
+//! Client for the Snip API's `POST /v1/recognize` (contracts: docs/desktop-v0.md §5.2 and
+//! docs/beta-v1.md §6).
 
 use std::fmt;
 use std::time::Duration;
 
 use serde::Deserialize;
 
-/// Default for local development; configurable in M5. Override with `SNIP_API_URL`.
-pub const DEFAULT_BASE_URL: &str = "http://127.0.0.1:8790";
+/// The hosted API (the `snip-api` Worker). Release builds use it.
+pub const PRODUCTION_BASE_URL: &str = "https://api.snip.rojinsharma.com";
+/// `npm run dev:api`. Debug builds use it.
+pub const LOCAL_BASE_URL: &str = "http://127.0.0.1:8790";
 
 /// Generous enough for the server's worst case (two models, one retry each).
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(45);
@@ -65,20 +68,31 @@ impl ApiClient {
         }
     }
 
+    /// `SNIP_API_URL` if set, otherwise the hosted API in release builds and the local one in
+    /// debug builds.
     pub fn from_env() -> Self {
-        Self::new(&std::env::var("SNIP_API_URL").unwrap_or_else(|_| DEFAULT_BASE_URL.to_string()))
+        let default = if cfg!(debug_assertions) {
+            LOCAL_BASE_URL
+        } else {
+            PRODUCTION_BASE_URL
+        };
+        Self::new(&std::env::var("SNIP_API_URL").unwrap_or_else(|_| default.to_string()))
     }
 
-    pub fn recognize(&self, png: &[u8]) -> Result<Recognition, ApiError> {
-        let mut response = self
+    /// Sends the access key when there is one. The local API accepts requests without one;
+    /// the hosted API answers 401 `invalid_key`.
+    pub fn recognize(&self, png: &[u8], access_key: Option<&str>) -> Result<Recognition, ApiError> {
+        let mut request = self
             .agent
             .post(&self.endpoint)
-            .header("Content-Type", "image/png")
-            .send(png)
-            .map_err(|error| match error {
-                ureq::Error::Timeout(_) => ApiError::Timeout,
-                other => ApiError::Unreachable(other.to_string()),
-            })?;
+            .header("Content-Type", "image/png");
+        if let Some(key) = access_key {
+            request = request.header("Authorization", &format!("Bearer {key}"));
+        }
+        let mut response = request.send(png).map_err(|error| match error {
+            ureq::Error::Timeout(_) => ApiError::Timeout,
+            other => ApiError::Unreachable(other.to_string()),
+        })?;
         let status = response.status().as_u16();
         let body = response
             .body_mut()
@@ -165,7 +179,10 @@ mod tests {
         )
         .unwrap();
         let prepare_ms = started.elapsed().as_millis();
-        let recognition = ApiClient::from_env().recognize(&prepared.png).unwrap();
+        let key = std::env::var("SNIP_API_KEY").ok();
+        let recognition = ApiClient::from_env()
+            .recognize(&prepared.png, key.as_deref())
+            .unwrap();
         println!(
             "prepare {prepare_ms} ms ({}x{}, {} KB, resized={}), total {} ms, server {} ms, {}\n{}",
             prepared.width,
