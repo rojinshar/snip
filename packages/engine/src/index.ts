@@ -27,7 +27,13 @@ export {
 } from './latex/compare.ts';
 export { sanitizeModelOutput } from './latex/sanitize.ts';
 export { renderedSymbols } from './latex/symbols.ts';
-export { classifyOutput, splitMath, type OutputKind, type Segment } from './latex/segments.ts';
+export {
+  classifyOutput,
+  preserveLineBreaks,
+  splitMath,
+  type OutputKind,
+  type Segment,
+} from './latex/segments.ts';
 export { validateLatex, validateOutput, type ValidationResult } from './latex/validate.ts';
 export { DEFAULT_RETRY_POLICY, withRetry, type RetryPolicy } from './retry.ts';
 export {
