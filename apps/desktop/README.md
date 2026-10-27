@@ -3,9 +3,11 @@
 Snip's macOS menu-bar app, built with [Tauri 2](https://v2.tauri.app). Design:
 [docs/desktop-v0.md](../../docs/desktop-v0.md).
 
-**Status: M3.** Press `⌘⇧2` (or use the menu-bar ∫ icon → Snip Equation), drag a box over an
+**Status: M5.** Press `⌘⇧2` (or use the menu-bar ∫ icon → Snip Equation), drag a box over an
 equation, and the LaTeX lands on your clipboard as `$…$`, with a notification showing what
-was copied. While it works, `…` appears next to the menu-bar icon.
+was copied. While it works, `…` appears next to the menu-bar icon. **Settings…** in the menu
+changes the hotkey and the delimiters; they are saved to
+`~/Library/Application Support/io.github.rojinshar.snip/settings.json`.
 
 The app needs the Snip API running: `npm run dev:api` in another terminal. It connects to
 `http://127.0.0.1:8790` by default; set `SNIP_API_URL` to change that.
@@ -24,7 +26,7 @@ From the repo root:
 | ---------------------------------------- | ----------------------------------------------------------------------- |
 | `npm run dev:desktop`                    | Run the app in development mode                                         |
 | `npm run build:desktop`                  | Build `Snip.app` and the `.dmg` (in `src-tauri/target/release/bundle/`) |
-| `npm run test --workspace @snip/desktop` | Rust unit tests                                                         |
+| `npm run test --workspace @snip/desktop` | Rust unit tests (settings UI tests run with the root `npm test`)        |
 | `npm run lint --workspace @snip/desktop` | `cargo clippy`, warnings as errors                                      |
 
 End-to-end check against a running API, using the app's own resize and upload code:
@@ -84,17 +86,20 @@ A Developer ID replaces this certificate when distribution starts.
 
 ## Layout
 
-| Path                           | What                                                              |
-| ------------------------------ | ----------------------------------------------------------------- |
-| `src-tauri/src/lib.rs`         | App setup: tray menu, global shortcut, snip flow, notifications   |
-| `src-tauri/src/capture.rs`     | `screencapture -i` wrapper (unit-tested)                          |
-| `src-tauri/src/api.rs`         | Client for `POST /v1/recognize`; maps API error codes             |
-| `src-tauri/src/image_prep.rs`  | Downscales captures to at most 2000 px before upload              |
-| `src-tauri/src/format.rs`      | Clipboard delimiters and notification previews                    |
-| `src-tauri/src/metrics.rs`     | Per-snip timing log                                               |
-| `src-tauri/src/permissions.rs` | Screen Recording checks (CoreGraphics)                            |
-| `src-tauri/tauri.conf.json`    | Bundle config (identifier, icons, targets)                        |
-| `src-tauri/Info.plist`         | `LSUIElement`: menu-bar only                                      |
-| `src-tauri/icons/`             | App icons (`source-1024.png` is the master) and the tray template |
-| `ui/`                          | Placeholder web UI; the settings window arrives in M5             |
-| `QA.md`                        | Manual test checklist                                             |
+| Path                               | What                                                              |
+| ---------------------------------- | ----------------------------------------------------------------- |
+| `src-tauri/src/lib.rs`             | App setup: tray menu, global shortcut, snip flow, notifications   |
+| `src-tauri/src/capture.rs`         | `screencapture -i` wrapper (unit-tested)                          |
+| `src-tauri/src/api.rs`             | Client for `POST /v1/recognize`; maps API error codes             |
+| `src-tauri/src/image_prep.rs`      | Downscales captures to at most 2000 px before upload              |
+| `src-tauri/src/format.rs`          | Clipboard delimiters and notification previews                    |
+| `src-tauri/src/metrics.rs`         | Per-snip timing log                                               |
+| `src-tauri/src/permissions.rs`     | Screen Recording checks (CoreGraphics)                            |
+| `src-tauri/src/settings.rs`        | Settings file: load, save, hotkey validation                      |
+| `src-tauri/src/settings_window.rs` | Settings window and the commands it calls                         |
+| `src-tauri/tauri.conf.json`        | Bundle config (identifier, icons, targets)                        |
+| `src-tauri/Info.plist`             | `LSUIElement`: menu-bar only                                      |
+| `src-tauri/icons/`                 | App icons (`source-1024.png` is the master) and the tray template |
+| `ui/`                              | Settings window (Vite + TypeScript); built into `dist/`           |
+| `test/`                            | Vitest tests for the settings window                              |
+| `QA.md`                            | Manual test checklist                                             |

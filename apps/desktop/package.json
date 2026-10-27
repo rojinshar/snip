@@ -1,18 +1,24 @@
 {
   "name": "@snip/desktop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Snip macOS menu-bar app (Tauri 2).",
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
+    "dev:ui": "vite",
+    "build:ui": "vite build",
     "test": "cargo test --manifest-path src-tauri/Cargo.toml",
     "lint": "cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings",
     "fmt": "cargo fmt --manifest-path src-tauri/Cargo.toml",
     "reset-permission": "osascript -e 'if application \"Snip\" is running then quit app \"Snip\"' && sleep 1 && tccutil reset ScreenCapture io.github.rojinshar.snip && open /Applications/Snip.app"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.12.4"
+    "@tauri-apps/cli": "^2.12.4",
+    "vite": "^5.4.21"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.12.4"
   }
 }

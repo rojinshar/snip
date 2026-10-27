@@ -1,6 +1,6 @@
 [package]
 name = "snip-desktop"
-version = "0.1.0"
+version = "0.2.0"
 description = "Snip: screenshot any equation, paste LaTeX"
 edition = "2021"
 rust-version = "1.80"

@@ -39,6 +39,11 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
+  // The desktop settings window runs in a webview.
+  {
+    files: ['apps/desktop/ui/**/*.ts'],
+    languageOptions: { globals: globals.browser },
+  },
   // Next.js and React rules for the website only.
   ...nextCoreWebVitals.map((config) => ({
     ...config,
