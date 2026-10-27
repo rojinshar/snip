@@ -11,7 +11,7 @@ const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
 const title = 'Snip — Screenshot any equation, paste LaTeX';
 const description =
-  '200 free snips a month. One hotkey, compile-checked LaTeX on your clipboard in about 2 seconds.';
+  '200 free snips a month. One hotkey, compile-checked LaTeX on your clipboard in about 3 seconds.';
 const image = {
   url: '/og.png',
   width: 1200,

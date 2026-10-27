@@ -40,7 +40,7 @@ const steps = [
   { title: 'Drag a box', body: 'Select the equation.' },
   {
     title: 'Paste',
-    body: 'Compile-checked LaTeX is already on your clipboard, in about 2 seconds.',
+    body: 'Compile-checked LaTeX is already on your clipboard, in about 3 seconds.',
   },
 ];
 
@@ -72,7 +72,7 @@ const plans = [
 const faqs = [
   {
     q: 'Why not just paste the screenshot into ChatGPT?',
-    a: "You can, but it takes a chat window, an upload, a prompt and a copy-paste every time, and the LaTeX isn't checked. Snip is one hotkey, and checked LaTeX is on your clipboard in about 2 seconds.",
+    a: "You can, but it takes a chat window, an upload, a prompt and a copy-paste every time, and the LaTeX isn't checked. Snip is one hotkey, and checked LaTeX is on your clipboard in about 3 seconds.",
   },
   {
     q: 'How is this different from Mathpix?',
