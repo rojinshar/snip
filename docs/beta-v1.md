@@ -1,6 +1,6 @@
 # Snip beta (v1): design
 
-- **Status:** draft, needs the decisions in section 12
+- **Status:** accepted (quota and spending cap still proposed)
 - **Author:** Rojin Sharma
 - **Last updated:** 2026-10-26
 
@@ -31,27 +31,32 @@ phase, since a checkout already collects an email address.
 The API is a thin HTTP layer over `@snip/engine`. It needs outbound HTTPS to Gemini, about
 1–3 s of waiting per request, little CPU, and no local disk.
 
-| Option                 | Fixed cost                      | Code changes                             | Cold starts      | Notes                                              |
-| ---------------------- | ------------------------------- | ---------------------------------------- | ---------------- | -------------------------------------------------- |
-| **Cloudflare Workers** | $5/month (Workers Paid)         | Port the HTTP layer from Express to Hono | None             | Same account and push-to-deploy as the website     |
-| Fly.io                 | About $2–3/month for a small VM | None (Docker image)                      | None (always on) | One region; a VM to size and keep patched          |
-| Google Cloud Run       | $0 within the free tier         | None (Docker image)                      | 1–3 s after idle | A cold start on the first snip breaks the 2 s goal |
+| Option                     | Fixed cost                                    | Code changes                        | Cold starts             | Notes                                                   |
+| -------------------------- | --------------------------------------------- | ----------------------------------- | ----------------------- | ------------------------------------------------------- |
+| **Cloudflare Workers**     | $0 (Free), or $5/month (Paid) if CPU needs it | A Worker entry point; Express stays | None                    | Same account and push-to-deploy as the website          |
+| Fly.io                     | About $2–3/month for a small VM               | None (Docker image)                 | None (always on)        | One region; a VM to size and keep patched               |
+| Railway                    | About $5/month, usage-based                   | None (Docker image)                 | None (always on)        | Similar to Fly.io                                       |
+| Render (free)              | $0                                            | None                                | 30 s or more after idle | Sleeps when idle; unusable for a hotkey tool            |
+| A small VPS (e.g. Hetzner) | About €4/month                                | None                                | None                    | Cheapest always-on, but we run the OS, TLS and restarts |
+| Google Cloud Run           | $0 within the free tier                       | None (Docker image)                 | 1–3 s after idle        | A cold start on the first snip breaks the 2 s goal      |
 
 **Recommendation: Cloudflare Workers.** It adds no new platform: the website already
-deploys there on push to `main`. It never cold-starts, it runs close to the user, and
-waiting on Gemini is not billed (only CPU time is, and 30 million CPU ms a month are
-included). The cost is porting `apps/api/src/app.ts` and its tests from Express to Hono.
-The recognizer, image detection and error mapping are already framework-independent.
+deploys there on push to `main`. It never cold-starts, it runs close to the user, and time
+spent waiting on Gemini is not billed, only CPU time. Workers run Express apps unchanged
+through Node.js HTTP compatibility (`nodejs_compat`, compatibility date 2025-09-01 or
+later), so `apps/api` keeps Express and its tests. B1 adds a Worker entry point that builds
+the app from Worker secrets instead of `.env`.
 
 **A separate Worker, not the website's.** The API deploys as its own Worker (`snip-api`) in
 the same Cloudflare account, not as routes inside the website's Next.js Worker
 (`snip-web`). Each deploys, rolls back and fails on its own: a landing-page change cannot
 break the app's API, and the Gemini key is never in the website's environment. Both share
-the Workers Paid plan and the Neon database, and can later sit under one domain (for
+the same Workers plan and the Neon database, and can later sit under one domain (for
 example `snip.app` and `api.snip.app`).
 
-The free Workers plan allows 10 ms of CPU per request. Base64-encoding a large capture and
-the KaTeX check may exceed that, so plan on the $5 plan and measure CPU time in B1.
+**Start on the free plan.** It allows 10 ms of CPU per request; waiting on Gemini does not
+count. Our CPU work (reading the image, the KaTeX check, JSON) is small, so B1 measures it.
+Move to Workers Paid ($5/month, 30 s of CPU per request) only if requests exceed the limit.
 
 ## 4. Access keys instead of accounts
 
@@ -159,13 +164,13 @@ After B1, the author stops running `npm run dev:api`.
 | Gemini outage or price change              | Low           | Engine is swappable; the spending cap bounds price surprises |
 | Testers blocked by macOS security warnings | High until B4 | Developer ID signing and notarization in B4                  |
 
-## 12. Decisions needed
+## 12. Decisions
 
-| Question                | Proposal                                             |
-| ----------------------- | ---------------------------------------------------- |
-| Hosting                 | Cloudflare Workers Paid ($5/month)                   |
-| Beta authentication     | Access keys sent by hand; no accounts until payments |
-| Quota per tester        | 200 successful snips per month                       |
-| Daily spending cap      | $2 per day across all testers                        |
-| Apple Developer Program | Join before B4 ($99/year)                            |
-| Custom domain           | Not needed for the beta; buy one before launch       |
+| Question                | Decision                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------ |
+| Hosting                 | Cloudflare Workers, a separate `snip-api` Worker; free plan until CPU says otherwise |
+| Beta authentication     | Access keys created with a script and sent to testers by hand                        |
+| Quota per tester        | 200 successful snips per month (proposed)                                            |
+| Daily spending cap      | $2 per day across all testers (proposed)                                             |
+| Apple Developer Program | The author's existing organization account, used from B4                             |
+| Custom domain           | Not needed for the beta; buy one before launch                                       |
