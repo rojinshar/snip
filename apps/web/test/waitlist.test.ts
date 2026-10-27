@@ -32,6 +32,12 @@ describe('handleWaitlistRequest', () => {
     expect(repo.signups).toEqual([{ email: 'student@vanderbilt.edu', source: 'reddit-latex' }]);
   });
 
+  it('stores direct for visitors who arrived without a ref', async () => {
+    const repo = memoryRepository();
+    await handleWaitlistRequest(post({ email: 'a@b.co', source: 'direct' }), repo, silent);
+    expect(repo.signups).toEqual([{ email: 'a@b.co', source: 'direct' }]);
+  });
+
   it('ignores a malformed source instead of rejecting the sign-up', async () => {
     const repo = memoryRepository();
     await handleWaitlistRequest(post({ email: 'a@b.co', source: '<script>' }), repo, silent);
