@@ -43,6 +43,13 @@ waiting on Gemini is not billed (only CPU time is, and 30 million CPU ms a month
 included). The cost is porting `apps/api/src/app.ts` and its tests from Express to Hono.
 The recognizer, image detection and error mapping are already framework-independent.
 
+**A separate Worker, not the website's.** The API deploys as its own Worker (`snip-api`) in
+the same Cloudflare account, not as routes inside the website's Next.js Worker
+(`snip-web`). Each deploys, rolls back and fails on its own: a landing-page change cannot
+break the app's API, and the Gemini key is never in the website's environment. Both share
+the Workers Paid plan and the Neon database, and can later sit under one domain (for
+example `snip.app` and `api.snip.app`).
+
 The free Workers plan allows 10 ms of CPU per request. Base64-encoding a large capture and
 the KaTeX check may exceed that, so plan on the $5 plan and measure CPU time in B1.
 
