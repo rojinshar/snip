@@ -1,0 +1,14 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "snip-api",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-10-01",
+  // nodejs_compat with a date after 2025-09-01 enables node:http servers, so Express runs as is.
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  // The only public URL. workers.dev and per-version preview URLs are off.
+  "routes": [{ "pattern": "api.snip.rojinsharma.com", "custom_domain": true }],
+  "preview_urls": false,
+  // Secrets (set with `wrangler secret put`, never committed): GEMINI_API_KEY, SNIP_OWNER_KEY.
+  // Local `wrangler dev` reads them from .dev.vars.
+}

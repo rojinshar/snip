@@ -25,7 +25,7 @@ capture or permissions. Mark each item ✅/❌ in the PR description.
 
 ## M3: recognition and clipboard
 
-Start the API first: `npm run dev:api`.
+Release builds use the hosted API and need an access key (see Beta below).
 
 - [ ] Snip a single-line equation: `…` shows next to the icon, then "Copied to clipboard" with
       a preview; ⌘V pastes `$…$` LaTeX that compiles in Overleaf.
@@ -63,3 +63,16 @@ Start the API first: `npm run dev:api`.
 - [ ] Quit and relaunch Snip: the hotkey and delimiters are kept.
 - [ ] Corrupt `settings.json` (type junk into it) and relaunch: Snip starts with defaults.
 - [ ] Light and dark mode both look right.
+
+## Beta: hosted API and access key
+
+- [ ] Remove the access key in Settings, then snip: "Snip needs your access key", and the
+      settings window opens.
+- [ ] Paste a malformed key: the window explains the expected format; nothing is saved.
+- [ ] Save a well-formed but wrong key (change one letter), then snip: "Access key not
+      accepted", and the settings window opens.
+- [ ] Paste the owner key and Save: the window shows `Saved: snip_…` with the last four
+      characters only. Snip works with `npm run dev:api` stopped.
+- [ ] Quit and relaunch: the key is still saved (Keychain), and `settings.json` does not
+      contain it.
+- [ ] Turn off Wi-Fi and snip: "Snip couldn't reach the server", clipboard unchanged.

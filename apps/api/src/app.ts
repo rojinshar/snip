@@ -3,19 +3,23 @@ import { randomUUID } from 'node:crypto';
 import express, {
   type ErrorRequestHandler,
   type Express,
+  type NextFunction,
   type Request,
   type Response,
 } from 'express';
 
+import { type Authorizer, bearerToken } from './auth.ts';
 import { detectImageType } from './image.ts';
 import type { Logger } from './logger.ts';
 import type { RecognizeErrorCode, Recognizer } from './recognize.ts';
 
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
-type ApiErrorCode = 'invalid_image' | 'image_too_large' | 'internal_error' | RecognizeErrorCode;
+type ApiErrorCode =
+  'invalid_key' | 'invalid_image' | 'image_too_large' | 'internal_error' | RecognizeErrorCode;
 
 const ERRORS: Readonly<Record<ApiErrorCode, { status: number; message: string }>> = {
+  invalid_key: { status: 401, message: "That access key isn't valid." },
   invalid_image: { status: 400, message: 'Could not read that image.' },
   image_too_large: { status: 413, message: 'Image is over 10 MB.' },
   no_math_found: { status: 422, message: 'No equation found in the selection.' },
@@ -26,6 +30,8 @@ const ERRORS: Readonly<Record<ApiErrorCode, { status: number; message: string }>
 export interface AppDeps {
   readonly recognizer: Recognizer;
   readonly logger: Logger;
+  /** Omit to accept every request (local development). */
+  readonly authorize?: Authorizer;
   readonly now?: () => number;
   readonly requestId?: () => string;
 }
@@ -65,6 +71,14 @@ export function createApp(deps: AppDeps): Express {
   // The body is the raw image. Its type is checked from its bytes, not the header.
   app.post(
     '/v1/recognize',
+    // Checked before the body is read, so unauthorized uploads cost nothing.
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (deps.authorize && !(await deps.authorize(bearerToken(req.headers.authorization)))) {
+        sendError(res, 'invalid_key');
+        return;
+      }
+      next();
+    },
     express.raw({ type: () => true, limit: MAX_IMAGE_BYTES }),
     async (req: Request, res: Response) => {
       const body: unknown = req.body;
