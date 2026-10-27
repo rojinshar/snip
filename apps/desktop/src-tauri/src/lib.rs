@@ -10,6 +10,7 @@ mod metrics;
 mod permissions;
 mod settings;
 mod settings_window;
+mod updates;
 
 use std::fs;
 use std::process::Command;
@@ -74,6 +75,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 // Snip registers exactly one shortcut: the hotkey from settings.
@@ -97,8 +99,10 @@ pub fn run() {
 
             let settings_path = app.path().app_config_dir()?.join(settings::FILE_NAME);
             let current = settings::load(&settings_path);
-            let snip_item = build_tray(app.handle(), &current.hotkey)?;
+            let (snip_item, updates_item) = build_tray(app.handle(), &current.hotkey)?;
             app.manage(SettingsState::new(settings_path, current, snip_item));
+            app.manage(updates::UpdateState::new(updates_item));
+            updates::start_background_checks(app.handle());
             if settings_window::register_current_hotkey(app.handle()).is_err() {
                 notify(
                     app.handle(),
@@ -140,11 +144,18 @@ pub fn run() {
         });
 }
 
-/// Builds the menu-bar icon and menu. Returns the Snip Equation item so its shortcut label
-/// can follow the hotkey setting.
-fn build_tray(app: &AppHandle, hotkey: &str) -> tauri::Result<MenuItem<Wry>> {
+/// Builds the menu-bar icon and menu. Returns the Snip Equation item, whose shortcut label
+/// follows the hotkey setting, and the updates item, whose label follows update state.
+fn build_tray(app: &AppHandle, hotkey: &str) -> tauri::Result<(MenuItem<Wry>, MenuItem<Wry>)> {
     let snip = MenuItem::with_id(app, "snip", "Snip Equation", true, Some(hotkey))?;
     let settings = MenuItem::with_id(app, "settings", "Settings…", true, Some("Cmd+Comma"))?;
+    let updates = MenuItem::with_id(
+        app,
+        updates::MENU_ID,
+        updates::CHECK_LABEL,
+        true,
+        None::<&str>,
+    )?;
     // macOS only applies a new Screen Recording grant after the app relaunches.
     let restart = MenuItem::with_id(app, "restart", "Restart Snip", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit Snip", true, Some("CmdOrCtrl+Q"))?;
@@ -162,6 +173,7 @@ fn build_tray(app: &AppHandle, hotkey: &str) -> tauri::Result<MenuItem<Wry>> {
             &snip,
             &PredefinedMenuItem::separator(app)?,
             &settings,
+            &updates,
             &version,
             &restart,
             &quit,
@@ -179,12 +191,13 @@ fn build_tray(app: &AppHandle, hotkey: &str) -> tauri::Result<MenuItem<Wry>> {
         .on_menu_event(|app, event| match event.id().as_ref() {
             "snip" => start_snip(app.clone()),
             "settings" => settings_window::open(app),
+            updates::MENU_ID => updates::on_menu_click(app),
             "restart" => app.restart(),
             "quit" => app.exit(0),
             _ => {}
         })
         .build(app)?;
-    Ok(snip)
+    Ok((snip, updates))
 }
 
 fn start_snip(app: AppHandle) {
@@ -426,7 +439,7 @@ fn notification_for(result: &SnipResult) -> Option<(String, String)> {
 }
 
 /// Shows a notification; an empty body shows the title alone.
-fn notify(app: &AppHandle, title: &str, body: &str) {
+pub(crate) fn notify(app: &AppHandle, title: &str, body: &str) {
     let mut builder = app.notification().builder().title(title);
     if !body.is_empty() {
         builder = builder.body(body);

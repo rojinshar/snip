@@ -8,9 +8,13 @@
 #   APPLE_API_ISSUER         App Store Connect API issuer ID
 #   APPLE_API_KEY            App Store Connect API key ID
 #   APPLE_API_KEY_PATH       path to AuthKey_<KEYID>.p8 (outside the repo)
+#   TAURI_SIGNING_PRIVATE_KEY           path to the updater key (~/.tauri/snip-updater.key)
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  its password
 #
 # Tauri signs the app with the hardened runtime and notarizes it when these are set. This
 # script then signs, notarizes and staples the .dmg, and checks both with Apple's tools.
+# Tauri also writes the update archive (Snip.app.tar.gz) and its updater signature (.sig),
+# which npm run publish:desktop uploads.
 set -euo pipefail
 
 # Notarization can wait on Apple for many minutes; keep the Mac from idle-sleeping and
@@ -23,10 +27,14 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 DESKTOP="$REPO_ROOT/apps/desktop"
 BUNDLE="$DESKTOP/src-tauri/target/release/bundle"
 
-# Export only the APPLE_* settings from .env, without echoing them.
+SETTINGS=(APPLE_SIGNING_IDENTITY APPLE_API_ISSUER APPLE_API_KEY APPLE_API_KEY_PATH
+  TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD)
+
+# Export only these settings from .env, without echoing them.
 while IFS='=' read -r name value; do
   case "$name" in
-    APPLE_SIGNING_IDENTITY | APPLE_API_ISSUER | APPLE_API_KEY | APPLE_API_KEY_PATH)
+    APPLE_SIGNING_IDENTITY | APPLE_API_ISSUER | APPLE_API_KEY | APPLE_API_KEY_PATH | \
+      TAURI_SIGNING_PRIVATE_KEY | TAURI_SIGNING_PRIVATE_KEY_PASSWORD)
       value="${value%\"}"
       value="${value#\"}"
       export "$name=${value/#\~/$HOME}"
@@ -34,13 +42,14 @@ while IFS='=' read -r name value; do
   esac
 done < "$REPO_ROOT/.env"
 
-for name in APPLE_SIGNING_IDENTITY APPLE_API_ISSUER APPLE_API_KEY APPLE_API_KEY_PATH; do
+for name in "${SETTINGS[@]}"; do
   if [[ -z "${!name:-}" ]]; then
     echo "error: $name is not set in $REPO_ROOT/.env" >&2
     exit 1
   fi
 done
 [[ -f "$APPLE_API_KEY_PATH" ]] || { echo "error: no file at APPLE_API_KEY_PATH" >&2; exit 1; }
+[[ -f "$TAURI_SIGNING_PRIVATE_KEY" ]] || { echo "error: no file at TAURI_SIGNING_PRIVATE_KEY" >&2; exit 1; }
 security find-identity -v -p codesigning | grep -qF "$APPLE_SIGNING_IDENTITY" ||
   { echo "error: signing identity not found or not valid in the keychain" >&2; exit 1; }
 
@@ -61,6 +70,8 @@ echo "==> Verifying"
 codesign --verify --deep --strict "$app"
 xcrun stapler validate "$app"
 xcrun stapler validate "$dmg"
+[[ -f "$app.tar.gz" && -f "$app.tar.gz.sig" ]] ||
+  { echo "error: update archive or its signature is missing" >&2; exit 1; }
 spctl --assess --type execute --verbose=2 "$app"
 spctl --assess --type open --context context:primary-signature --verbose=2 "$dmg"
 
@@ -69,3 +80,4 @@ spctl --assess --type open --context context:primary-signature --verbose=2 "$dmg
 rm -rf "$app"
 
 echo "==> Ready to distribute: $dmg"
+echo "    Update archive: $app.tar.gz (publish both with npm run publish:desktop)"
