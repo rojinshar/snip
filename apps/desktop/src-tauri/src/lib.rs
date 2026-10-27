@@ -122,6 +122,7 @@ pub fn run() {
             settings_window::get_access_status,
             settings_window::set_access_key,
             settings_window::clear_access_key,
+            settings_window::get_version,
         ])
         .on_window_event(|window, event| {
             // Closing the window mid-recording must not leave Snip without a hotkey.

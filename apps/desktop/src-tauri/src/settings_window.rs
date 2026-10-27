@@ -49,7 +49,7 @@ pub fn open(app: &AppHandle) {
     }
     let built = WebviewWindowBuilder::new(app, WINDOW_LABEL, WebviewUrl::default())
         .title("Snip Settings")
-        .inner_size(440.0, 500.0)
+        .inner_size(440.0, 520.0)
         .resizable(false)
         .maximizable(false)
         .minimizable(false)
@@ -226,6 +226,12 @@ fn key_problem(error: &ApiError) -> String {
         _ => "Couldn't check the key right now. Try again in a moment.",
     }
     .into()
+}
+
+/// Shown at the bottom of Settings, so a tester can say which version they run.
+#[tauri::command]
+pub fn get_version(app: AppHandle) -> String {
+    app.package_info().version.to_string()
 }
 
 #[tauri::command]
