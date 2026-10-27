@@ -123,9 +123,23 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     // macOS only applies a new Screen Recording grant after the app relaunches.
     let restart = MenuItem::with_id(app, "restart", "Restart Snip", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit Snip", true, Some("CmdOrCtrl+Q"))?;
+    // Disabled; shows which build is installed.
+    let version = MenuItem::with_id(
+        app,
+        "version",
+        format!("Version {}", app.package_info().version),
+        false,
+        None::<&str>,
+    )?;
     let menu = Menu::with_items(
         app,
-        &[&snip, &PredefinedMenuItem::separator(app)?, &restart, &quit],
+        &[
+            &snip,
+            &PredefinedMenuItem::separator(app)?,
+            &version,
+            &restart,
+            &quit,
+        ],
     )?;
 
     TrayIconBuilder::with_id(TRAY_ID)
