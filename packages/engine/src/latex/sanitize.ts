@@ -8,8 +8,8 @@ const DELIMITER_PAIRS: readonly (readonly [string, string])[] = [
 ];
 
 /**
- * Turns raw model output into bare LaTeX: drops markdown code fences and one layer of
- * math delimiters. Inner content is left untouched.
+ * Cleans raw model output: drops markdown code fences and, when the whole output is one
+ * delimited formula, that layer of delimiters. Text with several formulas is left as is.
  */
 export function sanitizeModelOutput(raw: string): string {
   let text = raw.trim();
@@ -19,10 +19,17 @@ export function sanitizeModelOutput(raw: string): string {
 
   for (const [open, close] of DELIMITER_PAIRS) {
     if (text.length > open.length + close.length && text.startsWith(open) && text.endsWith(close)) {
-      text = text.slice(open.length, text.length - close.length).trim();
+      const inner = text.slice(open.length, text.length - close.length);
+      // "$a$ and $b$" is text with two formulas, not one formula to unwrap.
+      if (containsDelimiter(inner)) break;
+      text = inner.trim();
       break;
     }
   }
 
   return text;
+}
+
+function containsDelimiter(text: string): boolean {
+  return /(?<!\\)\$|\\[([)\]]/.test(text);
 }

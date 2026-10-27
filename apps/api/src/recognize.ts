@@ -1,4 +1,11 @@
-import type { AttemptOutcome, OcrImage, OcrRouter, RouterResult } from '@snip/engine';
+import {
+  type AttemptOutcome,
+  type OcrImage,
+  type OcrRouter,
+  type OutputKind,
+  type RouterResult,
+  classifyOutput,
+} from '@snip/engine';
 
 export type RecognizeErrorCode = 'no_math_found' | 'upstream_failed';
 
@@ -17,7 +24,13 @@ export type RecognizeResult = {
   /** Total provider cost across every attempt. */
   readonly costUsd: number;
 } & (
-  | { readonly ok: true; readonly latex: string; readonly engine: string }
+  | {
+      readonly ok: true;
+      readonly latex: string;
+      readonly engine: string;
+      /** `math`: the app adds the user's delimiters. `text`: prose with $…$ math, pasted as is. */
+      readonly kind: OutputKind;
+    }
   | { readonly ok: false; readonly error: RecognizeErrorCode; readonly detail: string }
 );
 
@@ -52,6 +65,7 @@ export function toRecognizeResult(result: RouterResult): RecognizeResult {
       ok: true,
       latex: result.latex,
       engine: result.engineId,
+      kind: classifyOutput(result.latex),
       attempts,
       costUsd: result.costUsd,
     };

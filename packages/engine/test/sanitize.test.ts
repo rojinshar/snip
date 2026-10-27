@@ -16,11 +16,12 @@ describe('sanitizeModelOutput', () => {
     expect(sanitizeModelOutput(input)).toBe(expected);
   });
 
-  it('removes only one layer of delimiters', () => {
-    expect(sanitizeModelOutput('$a$ and $b$')).toBe('a$ and $b');
-  });
-
   it('leaves a lone dollar sign alone', () => {
     expect(sanitizeModelOutput('$')).toBe('$');
+  });
+
+  it('leaves text with several formulas intact instead of unwrapping the ends', () => {
+    expect(sanitizeModelOutput('$a$ and $b$')).toBe('$a$ and $b$');
+    expect(sanitizeModelOutput('\\(a\\) and \\(b\\)')).toBe('\\(a\\) and \\(b\\)');
   });
 });

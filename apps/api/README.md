@@ -52,7 +52,7 @@ Only a key's SHA-256 is stored. Every recognition writes one metadata row to `sn
 
 ```
 POST /v1/recognize          Authorization: Bearer snip_…   body: raw PNG/JPEG/WebP (≤ 10 MB)
-200 { "latex": "...", "engine": "gemini-3.5-flash-lite", "ms": 1180 }
+200 { "latex": "...", "kind": "math", "engine": "gemini-3.5-flash-lite", "ms": 1180 }
 400 invalid_image    401 invalid_key      413 image_too_large   422 no_math_found
 429 quota_exceeded (+ "resetsAt")         429 rate_limited
 502 upstream_failed  503 capacity         500 internal_error
@@ -67,6 +67,8 @@ GET /healthz → { "status": "ok" }
 
 - Key, quota, rate limit and spending cap are checked before the image is read, so a
   rejected request costs nothing. Quotas count successful snips per calendar month (UTC).
+- `kind`: `math` is bare LaTeX (the app adds the user's delimiters); `text` is prose with
+  `$…$` math, pasted as is. Each math segment of `text` must render in KaTeX.
 - The image type comes from the file's leading bytes; the `Content-Type` header is ignored.
 - Engines: Gemini 3.5 Flash-Lite, falling back to 3.8 Flash only when the output does not
   render in KaTeX. Each has a 10 s timeout (Gemini's minimum) and 1 retry.

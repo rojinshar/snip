@@ -15,6 +15,7 @@ const success: RecognizeResult = {
   ok: true,
   latex: 'x^2',
   engine: 'lite',
+  kind: 'math',
   attempts,
   costUsd: 0.0004,
 };
@@ -95,7 +96,7 @@ describe('POST /v1/recognize', () => {
 
     const res = await postImage(app, PNG).expect(200);
 
-    expect(res.body).toEqual({ latex: 'x^2', engine: 'lite', ms: 100 });
+    expect(res.body).toEqual({ latex: 'x^2', kind: 'math', engine: 'lite', ms: 100 });
     expect(res.headers['x-request-id']).toBe('req-1');
     expect(recognize).toHaveBeenCalledWith({ data: PNG, mimeType: 'image/png' });
   });
