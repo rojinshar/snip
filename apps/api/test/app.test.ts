@@ -2,6 +2,7 @@ import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
 import { MAX_IMAGE_BYTES, createApp } from '../src/app.ts';
+import { type Authorizer, ownerKeyAuthorizer } from '../src/auth.ts';
 import type { RecognizeResult, Recognizer } from '../src/recognize.ts';
 import { JPEG, PNG } from './helpers.ts';
 
@@ -11,6 +12,7 @@ const attempts = [
 
 function setup(
   result: RecognizeResult | Error = { ok: true, latex: 'x^2', engine: 'lite', attempts },
+  authorize?: Authorizer,
 ) {
   const lines: Record<string, unknown>[] = [];
   const recognize = vi.fn<Recognizer['recognize']>(() =>
@@ -25,6 +27,7 @@ function setup(
     },
     now: () => (clock += 100),
     requestId: () => 'req-1',
+    ...(authorize ? { authorize } : {}),
   });
   return { app, recognize, lines };
 }
@@ -104,6 +107,29 @@ describe('POST /v1/recognize', () => {
     const { app } = setup(new Error('secret stack detail'));
     const res = await postImage(app, PNG).expect(500);
     expect(res.body).toEqual({ error: 'internal_error', message: 'Something went wrong.' });
+  });
+});
+
+describe('authorization', () => {
+  const ok = { ok: true, latex: 'x^2', engine: 'lite', attempts } as const;
+
+  it('rejects a missing or wrong key with 401 before recognizing', async () => {
+    const { app, recognize } = setup(ok, ownerKeyAuthorizer('secret'));
+
+    const missing = await postImage(app, PNG).expect(401);
+    expect(missing.body).toEqual({ error: 'invalid_key', message: "That access key isn't valid." });
+    await postImage(app, PNG).set('authorization', 'Bearer wrong').expect(401);
+    expect(recognize).not.toHaveBeenCalled();
+  });
+
+  it('accepts the right key', async () => {
+    const { app } = setup(ok, ownerKeyAuthorizer('secret'));
+    await postImage(app, PNG).set('authorization', 'Bearer secret').expect(200);
+  });
+
+  it('leaves the health check open', async () => {
+    const { app } = setup(ok, ownerKeyAuthorizer('secret'));
+    await request(app).get('/healthz').expect(200);
   });
 });
 

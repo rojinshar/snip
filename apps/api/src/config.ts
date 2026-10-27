@@ -4,6 +4,8 @@ import { z } from 'zod';
 
 const configSchema = z.object({
   GEMINI_API_KEY: z.string().trim().min(1, 'GEMINI_API_KEY is required'),
+  /** When set, requests must send it as a bearer token. Optional for local development. */
+  SNIP_OWNER_KEY: z.string().trim().min(1).optional(),
   PORT: z.coerce.number().int().min(1).max(65535).default(8790),
   /** Loopback by default: v0 runs on the developer's machine only. */
   HOST: z.string().default('127.0.0.1'),
