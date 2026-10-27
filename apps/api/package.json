@@ -8,7 +8,8 @@
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "dev:worker": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "keys": "tsx scripts/keys.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
