@@ -18,7 +18,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use api::{ApiClient, ApiError};
 use capture::{capture_region, CaptureOutcome};
-use format::{month_day, preview, wrap};
+use format::{month_day, wrap};
 use metrics::SnipTimings;
 use settings_window::SettingsState;
 use tauri::image::Image;
@@ -376,7 +376,9 @@ fn notification_for(result: &SnipResult) -> Option<(String, String)> {
     let message = |title: &str, body: &str| Some((title.to_string(), body.to_string()));
     match result {
         SnipResult::Cancelled => None,
-        SnipResult::Copied { text } => message("Copied to clipboard", &preview(text, 80)),
+        // Just the confirmation: the LaTeX itself is on the clipboard, and a preview of it
+        // was unreadable in a notification.
+        SnipResult::Copied { .. } => message("Copied to clipboard", ""),
         SnipResult::NeedsPermission => message(
             "Snip needs Screen Recording access",
             "Turn on Snip in Privacy & Security → Screen Recording, then choose Restart Snip from the ∫ menu.",
@@ -423,8 +425,13 @@ fn notification_for(result: &SnipResult) -> Option<(String, String)> {
     }
 }
 
+/// Shows a notification; an empty body shows the title alone.
 fn notify(app: &AppHandle, title: &str, body: &str) {
-    if let Err(error) = app.notification().builder().title(title).body(body).show() {
+    let mut builder = app.notification().builder().title(title);
+    if !body.is_empty() {
+        builder = builder.body(body);
+    }
+    if let Err(error) = builder.show() {
         log::warn!("notification failed: {error}");
     }
 }
@@ -454,13 +461,13 @@ mod tests {
     }
 
     #[test]
-    fn copied_shows_a_flattened_preview() {
+    fn copied_shows_only_the_confirmation() {
         let result = SnipResult::Copied {
-            text: "$\\frac{a}{b}$".into(),
+            text: "$\\begin{aligned} a &= b \\\\ c &= d \\end{aligned}$".into(),
         };
         assert_eq!(
             notification_for(&result),
-            Some(("Copied to clipboard".into(), "$\\frac{a}{b}$".into()))
+            Some(("Copied to clipboard".into(), String::new()))
         );
     }
 
