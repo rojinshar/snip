@@ -200,9 +200,11 @@ Testers who install once must receive every later fix without reinstalling.
 
 **Mechanism:** Tauri's updater plugin. Snip checks
 `https://snip.rojinsharma.com/updates/latest.json` 30 seconds after launch and then daily,
-plus **Check for Updates…** in the menu. If a newer version is listed, it downloads and
-installs it in the background, then the menu shows **Restart to Update** and a notification
-says the update is ready. Nothing restarts without the user choosing to.
+plus **Check for Updates…** in the menu. If a newer version is listed, it is downloaded and
+verified in the background, a notification says it is ready, and the menu shows **Restart to
+Update**. It is installed only when the user chooses that, or quits or restarts Snip.
+Installing while the old version runs would replace its files underneath it, and macOS then
+silently drops that running app's notifications.
 
 **Hosting:**
 

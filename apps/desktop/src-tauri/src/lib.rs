@@ -193,8 +193,15 @@ fn build_tray(app: &AppHandle, hotkey: &str) -> tauri::Result<(MenuItem<Wry>, Me
             "snip" => start_snip(app.clone()),
             "settings" => settings_window::open(app),
             updates::MENU_ID => updates::on_menu_click(app),
-            "restart" => app.restart(),
-            "quit" => app.exit(0),
+            // A downloaded update is installed whenever Snip is about to stop anyway.
+            "restart" => {
+                updates::install_pending(app);
+                app.restart()
+            }
+            "quit" => {
+                updates::install_pending(app);
+                app.exit(0)
+            }
             _ => {}
         })
         .build(app)?;
