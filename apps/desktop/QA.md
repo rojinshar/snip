@@ -69,6 +69,8 @@ Release builds use the hosted API and need an access key (see Beta below).
 - [ ] Remove the access key in Settings, then snip: "Snip needs your access key", and the
       settings window opens.
 - [ ] Paste a malformed key: the window explains the expected format; nothing is saved.
+- [ ] Save a well-formed but wrong key (change one letter), then snip: "Access key not
+      accepted", and the settings window opens.
 - [ ] Paste the owner key and Save: the window shows `Saved: snip_…` with the last four
       characters only. Snip works with `npm run dev:api` stopped.
 - [ ] Quit and relaunch: the key is still saved (Keychain), and `settings.json` does not

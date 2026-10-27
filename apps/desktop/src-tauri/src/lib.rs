@@ -46,6 +46,8 @@ enum Failure {
     Capture(String),
     Image(String),
     Api(ApiError),
+    /// The API wants a key and none is saved; a rejected key stays `Api(invalid_key)`.
+    NoAccessKey,
     Clipboard(String),
 }
 
@@ -279,6 +281,9 @@ fn recognize_capture(
 
     let recognition = match recognition {
         Ok(recognition) => recognition,
+        Err(ApiError::Server { code, .. }) if code == "invalid_key" && access_key.is_none() => {
+            return SnipResult::Failed(Failure::NoAccessKey)
+        }
         Err(error) => return SnipResult::Failed(Failure::Api(error)),
     };
     timings.server_ms = Some(recognition.ms);
@@ -310,10 +315,11 @@ fn record_timings(app: &AppHandle, timings: &SnipTimings) {
 
 /// A missing or rejected key: the fix is in the settings window, so open it.
 fn needs_access_key(result: &SnipResult) -> bool {
-    matches!(
-        result,
-        SnipResult::Failed(Failure::Api(ApiError::Server { code, .. })) if code == "invalid_key"
-    )
+    match result {
+        SnipResult::Failed(Failure::NoAccessKey) => true,
+        SnipResult::Failed(Failure::Api(ApiError::Server { code, .. })) => code == "invalid_key",
+        _ => false,
+    }
 }
 
 /// The notification to show for a result, or None to stay silent (cancel).
@@ -329,14 +335,18 @@ fn notification_for(result: &SnipResult) -> Option<(String, String)> {
         SnipResult::Failed(Failure::Api(ApiError::Server { code, .. })) => match code.as_str() {
             "no_math_found" => message("No equation found", "Try selecting just the equation."),
             "invalid_key" => message(
-                "Snip needs your access key",
-                "Add or check it in Settings. The key is in your invite.",
+                "Access key not accepted",
+                "Check the key in Settings. It may be mistyped or no longer active.",
             ),
             "invalid_image" | "image_too_large" => {
                 message("Couldn't read that selection", "Try a smaller selection.")
             }
             _ => message("Recognition unavailable", "Snip couldn't read it right now. Try again."),
         },
+        SnipResult::Failed(Failure::NoAccessKey) => message(
+            "Snip needs your access key",
+            "Paste the key from your invite in Settings.",
+        ),
         SnipResult::Failed(Failure::Api(ApiError::Unreachable(_))) => {
             message("Snip couldn't reach the server", "Check your internet connection and try again.")
         }
@@ -424,14 +434,23 @@ mod tests {
     }
 
     #[test]
-    fn a_rejected_key_opens_settings_with_a_clear_message() {
-        let result = SnipResult::Failed(Failure::Api(ApiError::Server {
+    fn key_problems_open_settings_and_say_which_problem_it_is() {
+        let rejected = SnipResult::Failed(Failure::Api(ApiError::Server {
             status: 401,
             code: "invalid_key".into(),
         }));
-        assert!(needs_access_key(&result));
-        assert!(notification_for(&result).unwrap().1.contains("Settings"));
+        let missing = SnipResult::Failed(Failure::NoAccessKey);
+        assert!(needs_access_key(&rejected));
+        assert!(needs_access_key(&missing));
         assert!(!needs_access_key(&api_error("no_math_found")));
+        assert_eq!(
+            notification_for(&rejected).unwrap().0,
+            "Access key not accepted"
+        );
+        assert_eq!(
+            notification_for(&missing).unwrap().0,
+            "Snip needs your access key"
+        );
     }
 
     #[test]
