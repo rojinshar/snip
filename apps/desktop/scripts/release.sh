@@ -62,7 +62,9 @@ done
 rm -f "$BUNDLE"/macos/rw.*.dmg
 
 echo "==> Building, signing and notarizing Snip.app"
-(cd "$DESKTOP" && npx tauri build)
+# CI=true makes Tauri skip the Finder-scripted .dmg layout: it opened a window on screen
+# mid-build and failed whenever that window was touched or closed.
+(cd "$DESKTOP" && CI=true npx tauri build)
 
 app="$BUNDLE/macos/Snip.app"
 dmg="$(ls -t "$BUNDLE"/dmg/Snip_*.dmg | head -1)"
