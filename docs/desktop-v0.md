@@ -203,7 +203,7 @@ Opening it again focuses the existing window. Closing it destroys the window; th
 running in the menu bar.
 
 **Storage.** `settings.json` in the app config directory
-(`~/Library/Application Support/io.github.rojinshar.snip/`), read at launch and written on
+(`~/Library/Application Support/com.rojinsharma.snip/`), read at launch and written on
 every change. Rust owns the file: the window calls commands and never writes it directly. A
 missing file means defaults. An unreadable or invalid file is logged and Snip uses the
 defaults, so a bad file can never stop Snip from launching. Unknown fields are ignored, so an

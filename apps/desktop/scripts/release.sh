@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Builds a Developer ID signed and notarized Snip .dmg (docs/beta-v1.md, milestone B4).
+#
+#   npm run release:desktop        (from the repo root)
+#
+# Needs in the repo-root .env (never committed):
+#   APPLE_SIGNING_IDENTITY   "Developer ID Application: <Org> (<TEAMID>)", in the login keychain
+#   APPLE_API_ISSUER         App Store Connect API issuer ID
+#   APPLE_API_KEY            App Store Connect API key ID
+#   APPLE_API_KEY_PATH       path to AuthKey_<KEYID>.p8 (outside the repo)
+#
+# Tauri signs the app with the hardened runtime and notarizes it when these are set. This
+# script then signs, notarizes and staples the .dmg, and checks both with Apple's tools.
+set -euo pipefail
+
+# Notarization can wait on Apple for many minutes; keep the Mac from idle-sleeping and
+# dropping the connection meanwhile.
+if [[ -z "${SNIP_RELEASE_CAFFEINATED:-}" ]]; then
+  exec env SNIP_RELEASE_CAFFEINATED=1 caffeinate -i "$0" "$@"
+fi
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+DESKTOP="$REPO_ROOT/apps/desktop"
+BUNDLE="$DESKTOP/src-tauri/target/release/bundle"
+
+# Export only the APPLE_* settings from .env, without echoing them.
+while IFS='=' read -r name value; do
+  case "$name" in
+    APPLE_SIGNING_IDENTITY | APPLE_API_ISSUER | APPLE_API_KEY | APPLE_API_KEY_PATH)
+      value="${value%\"}"
+      value="${value#\"}"
+      export "$name=${value/#\~/$HOME}"
+      ;;
+  esac
+done < "$REPO_ROOT/.env"
+
+for name in APPLE_SIGNING_IDENTITY APPLE_API_ISSUER APPLE_API_KEY APPLE_API_KEY_PATH; do
+  if [[ -z "${!name:-}" ]]; then
+    echo "error: $name is not set in $REPO_ROOT/.env" >&2
+    exit 1
+  fi
+done
+[[ -f "$APPLE_API_KEY_PATH" ]] || { echo "error: no file at APPLE_API_KEY_PATH" >&2; exit 1; }
+security find-identity -v -p codesigning | grep -qF "$APPLE_SIGNING_IDENTITY" ||
+  { echo "error: signing identity not found or not valid in the keychain" >&2; exit 1; }
+
+notary=(--key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY" --issuer "$APPLE_API_ISSUER")
+
+echo "==> Building, signing and notarizing Snip.app"
+(cd "$DESKTOP" && npx tauri build)
+
+app="$BUNDLE/macos/Snip.app"
+dmg="$(ls -t "$BUNDLE"/dmg/Snip_*.dmg | head -1)"
+
+echo "==> Signing, notarizing and stapling $(basename "$dmg")"
+codesign --force --timestamp --sign "$APPLE_SIGNING_IDENTITY" "$dmg"
+xcrun notarytool submit "$dmg" "${notary[@]}" --wait
+xcrun stapler staple "$dmg"
+
+echo "==> Verifying"
+codesign --verify --deep --strict "$app"
+xcrun stapler validate "$app"
+xcrun stapler validate "$dmg"
+spctl --assess --type execute --verbose=2 "$app"
+spctl --assess --type open --context context:primary-signature --verbose=2 "$dmg"
+
+echo "==> Ready to distribute: $dmg"

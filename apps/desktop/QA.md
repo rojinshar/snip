@@ -9,7 +9,7 @@ capture or permissions. Mark each item ✅/❌ in the PR description.
 - [ ] The menu shows **Snip Equation ⌘⇧2**, **Settings… ⌘,**, the version (greyed out),
       **Restart Snip** and **Quit Snip ⌘Q**.
 - [ ] First snip without permission (reset with
-      `tccutil reset ScreenCapture io.github.rojinshar.snip`): the system prompt appears;
+      `tccutil reset ScreenCapture com.rojinsharma.snip`): the system prompt appears;
       System Settings opens at Screen Recording; the notification explains what to do.
 - [ ] Press ⌘⇧2 again before granting: only the notification shows; System Settings does not
       reopen.
@@ -34,17 +34,21 @@ Release builds use the hosted API and need an access key (see Beta below).
       clipboard keeps its previous content.
 - [ ] Stop the API and snip: "Snip couldn't reach the server", clipboard unchanged.
 - [ ] Press ⌘⇧2 while a snip is still processing: it is ignored; no second capture.
-- [ ] After 20 real snips: check `~/Library/Logs/io.github.rojinshar.snip/snips.jsonl` and
+- [ ] After 20 real snips: check `~/Library/Logs/com.rojinsharma.snip/snips.jsonl` and
       record p50/p95 `total_ms` in the PR (target: p50 < 2000, p95 < 3000).
 - [ ] The captures folder stays empty after snips (files are deleted).
 
-## M4: install from the `.dmg`
+## M4 and B4: install the signed release
 
-- [ ] Quit any running Snip, then open the `.dmg` and drag Snip to Applications, replacing
-      the old copy.
-- [ ] Launch from Applications: the menu shows the new version.
-- [ ] Log out and back in (or reboot): Snip is not running until launched. Launch at login is
-      out of scope for v0.
+- [ ] `npm run release:desktop` ends with "Ready to distribute" and both `spctl` checks say
+      `accepted, source=Notarized Developer ID`.
+- [ ] Quit any running Snip, open the `.dmg` and drag Snip to Applications, replacing the old
+      copy. Launching it shows no "unverified developer" warning.
+- [ ] The menu shows the new version.
+- [ ] Grant Screen Recording once. After installing the next signed release over it, snips
+      still work without granting again.
+- [ ] On a second Mac (or a fresh user account), download the `.dmg` from where testers will
+      get it and install: no warnings, and the key from an invite works.
 
 ## M5: settings
 
@@ -79,7 +83,7 @@ Release builds use the hosted API and need an access key (see Beta below).
 - [ ] Paste the owner key and Save: the window shows `Saved: snip_…` with the last four
       characters only. Snip works with `npm run dev:api` stopped.
 - [ ] Quit and relaunch: the key is still saved, and no Keychain prompt appears at any point.
-- [ ] `ls -l ~/Library/Application\ Support/io.github.rojinshar.snip/access-key` shows
+- [ ] `ls -l ~/Library/Application\ Support/com.rojinsharma.snip/access-key` shows
       `-rw-------`, and `settings.json` does not contain the key.
 - [ ] Turn off Wi-Fi and snip: "Snip couldn't reach the server", clipboard unchanged.
 - [ ] A successful snip shows ✓ next to the ∫ icon for about 2 seconds; a failure shows !;

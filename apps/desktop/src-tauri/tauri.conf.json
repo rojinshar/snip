@@ -1,8 +1,8 @@
 {
   "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Snip",
-  "version": "0.4.0",
-  "identifier": "io.github.rojinshar.snip",
+  "version": "0.5.0",
+  "identifier": "com.rojinsharma.snip",
   "build": {
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist",

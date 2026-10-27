@@ -7,11 +7,11 @@ Snip's macOS menu-bar app, built with [Tauri 2](https://v2.tauri.app). Design:
 equation, and the LaTeX lands on your clipboard as `$…$`, with a notification showing what
 was copied. While it works, `…` appears next to the menu-bar icon. **Settings…** in the menu
 changes the hotkey and the delimiters; they are saved to
-`~/Library/Application Support/io.github.rojinshar.snip/settings.json`.
+`~/Library/Application Support/com.rojinsharma.snip/settings.json`.
 
 **API:** release builds (`npm run build:desktop`) use the hosted API at
 `https://api.snip.rojinsharma.com`, which needs an access key: paste it under **Settings… →
-Access key**. It is saved to `~/Library/Application Support/io.github.rojinshar.snip/access-key`,
+Access key**. It is saved to `~/Library/Application Support/com.rojinsharma.snip/access-key`,
 readable only by you, and never in `settings.json`. Debug builds
 (`npm run dev:desktop`) use the local API (`npm run dev:api`, no key needed). `SNIP_API_URL`
 overrides either.
@@ -44,49 +44,46 @@ SNIP_E2E_IMAGE=/path/to/equation.png cargo test --release e2e -- --ignored --noc
 
 - **Timings:** each snip appends one JSON line (prepare, request, server and total ms, size,
   engine; never the image or the LaTeX) to
-  `~/Library/Logs/io.github.rojinshar.snip/snips.jsonl`.
+  `~/Library/Logs/com.rojinsharma.snip/snips.jsonl`.
 - **Captures** are deleted after each snip. Set `SNIP_KEEP_CAPTURES=1` to keep them in
-  `~/Library/Caches/io.github.rojinshar.snip/captures/`.
+  `~/Library/Caches/com.rojinsharma.snip/captures/`.
 
-## Install a local build
+## Release build (signed and notarized)
 
-1. Run `npm run build:desktop`.
-2. Open `apps/desktop/src-tauri/target/release/bundle/dmg/Snip_0.0.0_aarch64.dmg` and drag
-   Snip into Applications.
-3. Launch Snip from Applications. It lives in the menu bar (∫) and has no Dock icon.
+```sh
+npm run release:desktop
+```
 
-Local builds are ad-hoc signed (`signingIdentity: "-"` in `tauri.conf.json`), which seals the
-whole bundle without an Apple Developer account. Without it, the bundle's signature is
-incomplete and macOS can refuse to open it from Finder. Because the signature is ad-hoc:
+Builds `Snip_<version>_aarch64.dmg` signed with the Developer ID of Simple Storage LLC
+(team `2S5B4HX685`), notarized by Apple, with the ticket stapled to both the app and the
+`.dmg`, then verifies them with `codesign`, `stapler` and `spctl`. It needs the `APPLE_*`
+values in the root `.env` (see `.env.example`): the signing identity in the login keychain
+and an App Store Connect API key (`.p8`, kept in `~/.appstoreconnect/`, never in the repo).
+The script keeps the Mac awake with `caffeinate`, since Apple can take minutes to answer.
+
+Because the signature is stable, the Screen Recording grant survives updates, and the app
+opens without security warnings.
+
+## Local build (ad hoc signed)
+
+```sh
+npm run build:desktop
+```
+
+For quick local testing; no Apple account needed. The bundle is ad-hoc signed
+(`signingIdentity: "-"` in `tauri.conf.json`), and that signature changes on every build, so:
 
 - **First launch:** macOS may say it can't verify the developer. Open **System Settings →
   Privacy & Security** and click **Open Anyway**.
-- **Screen Recording:** the first snip asks for permission. Turn on Snip under **Privacy &
-  Security → Screen Recording**, then choose **Restart Snip** from the ∫ menu. macOS only
-  applies the grant after a relaunch. Each rebuild changes the ad-hoc signature, so after
-  installing a new build, run `npm run reset:desktop-permission` (quits Snip, runs
-  `tccutil reset ScreenCapture io.github.rojinshar.snip`, relaunches) and grant it again. To
-  avoid this,
-  sign with a stable local certificate (below).
-
-### Keep the Screen Recording grant across rebuilds
-
-macOS ties the grant to the app's signing identity. An ad-hoc signature is new on every
-build; a certificate in your keychain is not. One-time setup, no Apple account needed:
-
-1. Open **Keychain Access → Certificate Assistant → Create a Certificate…**
-2. Name: `Snip Local Dev`. Identity Type: **Self-Signed Root**. Certificate Type:
-   **Code Signing**. Click **Create**.
-3. Add `export APPLE_SIGNING_IDENTITY="Snip Local Dev"` to `~/.zshrc` and open a new
-   terminal. Tauri uses this instead of `signingIdentity` in `tauri.conf.json`.
-4. Build, then reset and grant Screen Recording one last time. On the first build, macOS
-   asks whether `codesign` may use the key: choose **Always Allow**.
-
-Check which identity a build used with `codesign -dv /Applications/Snip.app 2>&1 | grep Authority`.
-A Developer ID replaces this certificate when distribution starts.
-
+- **Screen Recording:** after installing a new local build, run
+  `npm run reset:desktop-permission` (quits Snip, runs
+  `tccutil reset ScreenCapture com.rojinsharma.snip`, relaunches), then grant it again and
+  choose **Restart Snip** from the ∫ menu. macOS only applies a grant after a relaunch.
 - **`npm run dev:desktop`:** in development, macOS attributes Screen Recording to the
   terminal app that started it (Terminal, iTerm or VS Code), so grant it there.
+
+Check which identity a build used with
+`codesign -dv /Applications/Snip.app 2>&1 | grep Authority`.
 
 ## Layout
 
