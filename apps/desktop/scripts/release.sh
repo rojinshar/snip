@@ -55,6 +55,12 @@ security find-identity -v -p codesigning | grep -qF "$APPLE_SIGNING_IDENTITY" ||
 
 notary=(--key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY" --issuer "$APPLE_API_ISSUER")
 
+# A temporary disk left mounted by an earlier failed run makes the .dmg step fail.
+for volume in /Volumes/dmg.*; do
+  [[ -d "$volume" ]] && hdiutil detach "$volume" -force -quiet || true
+done
+rm -f "$BUNDLE"/macos/rw.*.dmg
+
 echo "==> Building, signing and notarizing Snip.app"
 (cd "$DESKTOP" && npx tauri build)
 
