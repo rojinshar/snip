@@ -61,8 +61,8 @@ leniently (the website averages about 175 ms per request on the same plan withou
 so stay on the free plan and move to Workers Paid ($5/month, 30 s per request) only if
 Workers Logs show requests exceeding the CPU limit.
 
-**URL:** `https://api.snip.rojinsharma.com` (custom domain), with
-`snip-api.sharmarojin2022.workers.dev` as a fallback.
+**URL:** `https://api.snip.rojinsharma.com`, set in `apps/api/wrangler.jsonc`. The
+`workers.dev` URL is off, so there is one public address.
 
 ## 4. Access keys instead of accounts
 
