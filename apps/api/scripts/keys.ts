@@ -58,7 +58,8 @@ async function main(): Promise<void> {
                (SELECT count(*) FROM snips s
                  WHERE s.key_id = k.id AND s.status = 200
                    AND s.created_at >= date_trunc('month', now(), 'UTC')) AS used_this_month,
-               k.created_at::date AS created, k.revoked_at::date AS revoked
+               to_char(k.created_at, 'YYYY-MM-DD') AS created,
+               to_char(k.revoked_at, 'YYYY-MM-DD') AS revoked
         FROM access_keys k
         ORDER BY k.id
       `;
