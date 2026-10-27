@@ -81,17 +81,6 @@ pub fn capture_file_name(now: SystemTime) -> String {
     format!("snip-{millis}.png")
 }
 
-/// Width and height from a PNG's IHDR chunk, without decoding the image.
-pub fn png_dimensions(bytes: &[u8]) -> Option<(u32, u32)> {
-    const SIGNATURE: [u8; 8] = [0x89, b'P', b'N', b'G', b'\r', b'\n', 0x1a, b'\n'];
-    if bytes.len() < 24 || bytes[..8] != SIGNATURE || &bytes[12..16] != b"IHDR" {
-        return None;
-    }
-    let width = u32::from_be_bytes(bytes[16..20].try_into().ok()?);
-    let height = u32::from_be_bytes(bytes[20..24].try_into().ok()?);
-    Some((width, height))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -126,22 +115,5 @@ mod tests {
             interpret(false, Some(1), path),
             Err(CaptureError::Failed(Some(1)))
         ));
-    }
-
-    #[test]
-    fn reads_png_dimensions_from_ihdr() {
-        let mut png = vec![
-            0x89, b'P', b'N', b'G', b'\r', b'\n', 0x1a, b'\n', 0, 0, 0, 13,
-        ];
-        png.extend_from_slice(b"IHDR");
-        png.extend_from_slice(&640u32.to_be_bytes());
-        png.extend_from_slice(&120u32.to_be_bytes());
-        assert_eq!(png_dimensions(&png), Some((640, 120)));
-    }
-
-    #[test]
-    fn rejects_non_png_bytes() {
-        assert_eq!(png_dimensions(b"GIF89a not a png at all......"), None);
-        assert_eq!(png_dimensions(b"short"), None);
     }
 }
