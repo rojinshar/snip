@@ -7,4 +7,12 @@
 
 html {
   scroll-behavior: smooth;
+  /* Keeps anchored headings clear of the sticky nav. */
+  scroll-padding-top: 5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }

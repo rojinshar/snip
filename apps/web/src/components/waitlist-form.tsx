@@ -1,8 +1,10 @@
 'use client';
 
+import Link from 'next/link';
 import { type SubmitEvent, useEffect, useState } from 'react';
 
 import { refTracker } from '@/lib/ref';
+import { SIGNUP_INPUT_ID, focusSignup } from '@/lib/signup';
 
 type Status =
   { kind: 'idle' } | { kind: 'submitting' } | { kind: 'done' } | { kind: 'error'; message: string };
@@ -18,6 +20,19 @@ export function WaitlistForm({ id }: { id: string }) {
   useEffect(() => {
     refTracker.capture(window.location.search);
   }, []);
+
+  // Arriving at /#signup (the nav button from another page) puts the cursor in the hero form.
+  useEffect(() => {
+    if (`${id}-email` !== SIGNUP_INPUT_ID) return;
+    const onHash = () => {
+      if (window.location.hash === '#signup') focusSignup(false);
+    };
+    onHash();
+    window.addEventListener('hashchange', onHash);
+    return () => {
+      window.removeEventListener('hashchange', onHash);
+    };
+  }, [id]);
 
   async function onSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -48,9 +63,18 @@ export function WaitlistForm({ id }: { id: string }) {
 
   if (status.kind === 'done') {
     return (
-      <p role="status" className="rounded-lg bg-emerald-50 px-4 py-3 text-emerald-800">
-        You&apos;re on the list. We&apos;ll email you when the beta opens.
-      </p>
+      <div role="status" className="w-full max-w-md">
+        <p className="rounded-lg bg-emerald-50 px-4 py-3 text-emerald-800">
+          You&apos;re on the list. We&apos;re inviting people in small groups and will email your
+          access key.
+        </p>
+        <p className="mt-2 text-sm text-slate-500">
+          Already have a key?{' '}
+          <Link href="/download" className="font-medium text-indigo-600 hover:text-indigo-700">
+            Download for Mac →
+          </Link>
+        </p>
+      </div>
     );
   }
 
