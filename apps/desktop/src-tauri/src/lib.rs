@@ -13,12 +13,12 @@ mod settings_window;
 
 use std::fs;
 use std::process::Command;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use api::{ApiClient, ApiError};
 use capture::{capture_region, CaptureOutcome};
-use format::{preview, wrap};
+use format::{month_day, preview, wrap};
 use metrics::SnipTimings;
 use settings_window::SettingsState;
 use tauri::image::Image;
@@ -37,8 +37,13 @@ struct SnipState {
     /// System Settings is opened at most once per launch, so a missing permission can't
     /// turn every hotkey press into another trip to Settings.
     opened_permission_settings: AtomicBool,
+    /// Bumped on every tray-title change, so a delayed clear can tell it is out of date.
+    tray_title_generation: AtomicU64,
     api: ApiClient,
 }
+
+/// How long the ✓ or ! stays next to the menu-bar icon after a snip.
+const RESULT_MARK_DURATION: Duration = Duration::from_secs(2);
 
 /// Why a snip did not produce LaTeX.
 #[derive(Debug, PartialEq)]
@@ -82,6 +87,7 @@ pub fn run() {
         .manage(SnipState {
             busy: AtomicBool::new(false),
             opened_permission_settings: AtomicBool::new(false),
+            tray_title_generation: AtomicU64::new(0),
             api: ApiClient::from_env(),
         })
         .setup(|app| {
@@ -109,7 +115,7 @@ pub fn run() {
             settings_window::set_delimiters,
             settings_window::pause_hotkey,
             settings_window::resume_hotkey,
-            settings_window::get_access_key_hint,
+            settings_window::get_access_status,
             settings_window::set_access_key,
             settings_window::clear_access_key,
         ])
@@ -203,6 +209,8 @@ fn start_snip(app: AppHandle) {
         if needs_access_key(&result) {
             settings_window::open(&app);
         }
+        // Visible even when macOS mutes the notification (screen sharing, Focus).
+        show_result_mark(&app, result_mark(&result));
         if let Some((title, body)) = notification_for(&result) {
             notify(&app, &title, &body);
         }
@@ -301,9 +309,48 @@ fn recognize_capture(
 
 /// Shows "…" next to the menu-bar icon while waiting for recognition.
 fn set_busy_indicator(app: &AppHandle, busy: bool) {
-    if let Some(tray) = app.tray_by_id(TRAY_ID) {
-        let _ = tray.set_title(if busy { Some("…") } else { None });
+    set_tray_title(app, busy.then_some("…"));
+}
+
+/// The mark shown next to the menu-bar icon when a snip ends: ✓ copied, ! needs attention.
+fn result_mark(result: &SnipResult) -> Option<&'static str> {
+    match result {
+        SnipResult::Copied { .. } => Some("✓"),
+        SnipResult::Cancelled => None,
+        SnipResult::NeedsPermission | SnipResult::Failed(_) => Some("!"),
     }
+}
+
+fn show_result_mark(app: &AppHandle, mark: Option<&'static str>) {
+    let generation = set_tray_title(app, mark);
+    if mark.is_none() {
+        return;
+    }
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(RESULT_MARK_DURATION);
+        // Leave it alone if anything changed it since, such as a new snip's "…".
+        let current = app
+            .state::<SnipState>()
+            .tray_title_generation
+            .load(Ordering::SeqCst);
+        if current == generation {
+            set_tray_title(&app, None);
+        }
+    });
+}
+
+/// Sets the text next to the menu-bar icon and returns the new generation.
+fn set_tray_title(app: &AppHandle, title: Option<&str>) -> u64 {
+    let generation = app
+        .state::<SnipState>()
+        .tray_title_generation
+        .fetch_add(1, Ordering::SeqCst)
+        + 1;
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
+        let _ = tray.set_title(title);
+    }
+    generation
 }
 
 fn record_timings(app: &AppHandle, timings: &SnipTimings) {
@@ -334,12 +381,27 @@ fn notification_for(result: &SnipResult) -> Option<(String, String)> {
             "Snip needs Screen Recording access",
             "Turn on Snip in Privacy & Security → Screen Recording, then choose Restart Snip from the ∫ menu.",
         ),
-        SnipResult::Failed(Failure::Api(ApiError::Server { code, .. })) => match code.as_str() {
+        SnipResult::Failed(Failure::Api(ApiError::Server {
+            code, resets_at, ..
+        })) => match code.as_str() {
             "no_math_found" => message("No equation found", "Try selecting just the equation."),
             "invalid_key" => message(
                 "Access key not accepted",
                 "Check the key in Settings. It may be mistyped or no longer active.",
             ),
+            "quota_exceeded" => {
+                let resets = resets_at.as_deref().and_then(month_day);
+                let body = match resets {
+                    Some(day) => format!("This month's snips are used up. They reset on {day}."),
+                    None => "This month's snips are used up. They reset next month.".into(),
+                };
+                Some(("Monthly snips used up".to_string(), body))
+            }
+            "rate_limited" => message(
+                "Slow down a little",
+                "Too many snips in a minute. Try again shortly.",
+            ),
+            "capacity" => message("Snip is busy", "Try again in a little while."),
             "invalid_image" | "image_too_large" => {
                 message("Couldn't read that selection", "Try a smaller selection.")
             }
@@ -382,6 +444,7 @@ mod tests {
         SnipResult::Failed(Failure::Api(ApiError::Server {
             status: 422,
             code: code.into(),
+            resets_at: None,
         }))
     }
 
@@ -436,10 +499,40 @@ mod tests {
     }
 
     #[test]
+    fn quota_and_load_errors_explain_what_to_do() {
+        let used_up = SnipResult::Failed(Failure::Api(ApiError::Server {
+            status: 429,
+            code: "quota_exceeded".into(),
+            resets_at: Some("2026-11-01T00:00:00.000Z".into()),
+        }));
+        let (title, body) = notification_for(&used_up).unwrap();
+        assert_eq!(title, "Monthly snips used up");
+        assert!(body.contains("Nov 1"), "{body}");
+        assert_eq!(
+            notification_for(&api_error("rate_limited")).unwrap().0,
+            "Slow down a little"
+        );
+        assert_eq!(
+            notification_for(&api_error("capacity")).unwrap().0,
+            "Snip is busy"
+        );
+    }
+
+    #[test]
+    fn result_marks_show_success_and_problems_but_not_cancels() {
+        let copied = SnipResult::Copied { text: "$x$".into() };
+        assert_eq!(result_mark(&copied), Some("✓"));
+        assert_eq!(result_mark(&SnipResult::Cancelled), None);
+        assert_eq!(result_mark(&SnipResult::NeedsPermission), Some("!"));
+        assert_eq!(result_mark(&api_error("no_math_found")), Some("!"));
+    }
+
+    #[test]
     fn key_problems_open_settings_and_say_which_problem_it_is() {
         let rejected = SnipResult::Failed(Failure::Api(ApiError::Server {
             status: 401,
             code: "invalid_key".into(),
+            resets_at: None,
         }));
         let missing = SnipResult::Failed(Failure::NoAccessKey);
         assert!(needs_access_key(&rejected));

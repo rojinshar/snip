@@ -5,6 +5,13 @@ import './style.css';
 
 type Delimiters = 'inlineDollar' | 'displayBracket' | 'displayDollar' | 'none';
 
+/** Mirrors `AccessStatus` in src-tauri/src/settings_window.rs. */
+interface AccessStatus {
+  readonly hint: string | null;
+  readonly usage: string | null;
+  readonly problem: string | null;
+}
+
 /** Mirrors `Settings` in src-tauri/src/settings.rs. */
 interface Settings {
   readonly hotkey: string;
@@ -18,6 +25,8 @@ const keyState = byId('key-state', HTMLParagraphElement);
 const keyForm = byId('key-form', HTMLFormElement);
 const keyInput = byId('key-input', HTMLInputElement);
 const keyRemove = byId('key-remove', HTMLButtonElement);
+const keyUsage = byId('key-usage', HTMLParagraphElement);
+const keySave = byId('key-save', HTMLButtonElement);
 
 let settings: Settings | undefined;
 let recording = false;
@@ -38,28 +47,39 @@ function showError(error: unknown): void {
   status.textContent = typeof error === 'string' ? error : 'Something went wrong. Try again.';
 }
 
-/** Shows the saved key's hint (`snip_…k3q7`), never the key. */
-function renderKey(hint: string | null): void {
+const NO_KEY: AccessStatus = { hint: null, usage: null, problem: null };
+
+/** Shows the saved key's hint (`snip_…k3q7`, never the key) and its usage or problem. */
+function renderAccess(access: AccessStatus): void {
   keyState.textContent =
-    hint === null ? 'Not set. Paste the key from your invite.' : `Saved: ${hint}`;
-  keyRemove.hidden = hint === null;
-  keyInput.value = '';
+    access.hint === null ? 'Not set. Paste the key from your invite.' : `Saved: ${access.hint}`;
+  keyRemove.hidden = access.hint === null;
+  keyUsage.textContent = access.problem ?? access.usage ?? '';
+  keyUsage.classList.toggle('problem', access.problem !== null);
+  keyUsage.hidden = keyUsage.textContent === '';
 }
 
 async function onKeySubmit(event: SubmitEvent): Promise<void> {
   event.preventDefault();
+  // Saving asks the server to check the key, which can take a moment.
+  keySave.disabled = true;
+  keySave.textContent = 'Checking…';
   try {
-    renderKey(await invoke<string>('set_access_key', { key: keyInput.value }));
+    renderAccess(await invoke<AccessStatus>('set_access_key', { key: keyInput.value }));
+    keyInput.value = '';
     status.textContent = '';
   } catch (error) {
     showError(error);
+  } finally {
+    keySave.disabled = false;
+    keySave.textContent = 'Save';
   }
 }
 
 async function onKeyRemove(): Promise<void> {
   try {
     await invoke('clear_access_key');
-    renderKey(null);
+    renderAccess(NO_KEY);
     status.textContent = '';
   } catch (error) {
     showError(error);
@@ -128,4 +148,4 @@ keyForm.addEventListener('submit', (event) => void onKeySubmit(event));
 keyRemove.addEventListener('click', () => void onKeyRemove());
 
 invoke<Settings>('get_settings').then(render, showError);
-invoke<string | null>('get_access_key_hint').then(renderKey, showError);
+invoke<AccessStatus>('get_access_status').then(renderAccess, showError);

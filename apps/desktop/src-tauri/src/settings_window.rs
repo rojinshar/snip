@@ -7,8 +7,11 @@ use tauri::menu::MenuItem;
 use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder, Wry};
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
+use serde::Serialize;
+
 use crate::access_key;
-use crate::format::Delimiters;
+use crate::api::{ApiClient, ApiError, Usage};
+use crate::format::{usage_line, Delimiters};
 use crate::settings::{self, parse_hotkey, Settings};
 
 pub const WINDOW_LABEL: &str = "settings";
@@ -149,20 +152,80 @@ pub fn resume_hotkey(app: AppHandle) -> Result<(), String> {
     register_current_hotkey(&app)
 }
 
-/// What Settings shows for the saved key (`snip_…k3q7`), never the key itself.
-#[tauri::command]
-pub fn get_access_key_hint(app: AppHandle) -> Option<String> {
-    access_key::load(&access_key_path(&app).ok()?).map(|key| access_key::hint(&key))
+/// What Settings shows about the saved key: its hint (`snip_…k3q7`, never the key itself)
+/// and either its usage or what is wrong with it.
+#[derive(Debug, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccessStatus {
+    hint: Option<String>,
+    usage: Option<String>,
+    problem: Option<String>,
 }
 
+/// Reads the saved key and asks the server about it. Async so the window stays responsive.
 #[tauri::command]
-pub fn set_access_key(app: AppHandle, key: String) -> Result<String, String> {
+pub async fn get_access_status(app: AppHandle) -> AccessStatus {
+    let Some(key) = access_key_path(&app)
+        .ok()
+        .and_then(|path| access_key::load(&path))
+    else {
+        return AccessStatus::default();
+    };
+    let hint = Some(access_key::hint(&key));
+    match check_key(key).await {
+        Ok(usage) => AccessStatus {
+            hint,
+            usage: Some(describe_usage(&usage)),
+            problem: None,
+        },
+        Err(error) => AccessStatus {
+            hint,
+            usage: None,
+            problem: Some(key_problem(&error)),
+        },
+    }
+}
+
+/// Saves the key only after the server accepts it, so a typo is caught here rather than on
+/// the next snip.
+#[tauri::command]
+pub async fn set_access_key(app: AppHandle, key: String) -> Result<AccessStatus, String> {
     let key = access_key::normalize(&key).map_err(|error| error.message().to_string())?;
+    let usage = check_key(key.clone())
+        .await
+        .map_err(|error| key_problem(&error))?;
     access_key::save(&access_key_path(&app)?, &key).map_err(|error| {
         log::error!("could not save the access key: {error:?}");
         error.message().to_string()
     })?;
-    Ok(access_key::hint(&key))
+    Ok(AccessStatus {
+        hint: Some(access_key::hint(&key)),
+        usage: Some(describe_usage(&usage)),
+        problem: None,
+    })
+}
+
+async fn check_key(key: String) -> Result<Usage, ApiError> {
+    tauri::async_runtime::spawn_blocking(move || ApiClient::from_env().me(Some(&key)))
+        .await
+        .unwrap_or_else(|error| Err(ApiError::Unreachable(error.to_string())))
+}
+
+fn describe_usage(usage: &Usage) -> String {
+    usage_line(usage.used, usage.quota, usage.resets_at.as_deref())
+}
+
+fn key_problem(error: &ApiError) -> String {
+    match error {
+        ApiError::Server { code, .. } if code == "invalid_key" => {
+            "This key isn't accepted. It may be mistyped or no longer active."
+        }
+        ApiError::Unreachable(_) | ApiError::Timeout => {
+            "Couldn't reach Snip to check the key. Check your internet connection."
+        }
+        _ => "Couldn't check the key right now. Try again in a moment.",
+    }
+    .into()
 }
 
 #[tauri::command]
@@ -186,4 +249,21 @@ pub fn access_key_path(app: &AppHandle) -> Result<PathBuf, String> {
 fn save_failed(error: std::io::Error) -> String {
     log::error!("could not save settings: {error}");
     "Couldn't save settings. Try again.".into()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn key_problems_say_what_to_do() {
+        let rejected = ApiError::Server {
+            status: 401,
+            code: "invalid_key".into(),
+            resets_at: None,
+        };
+        assert!(key_problem(&rejected).contains("isn't accepted"));
+        assert!(key_problem(&ApiError::Timeout).contains("internet connection"));
+        assert!(key_problem(&ApiError::BadResponse("x".into())).contains("Try again"));
+    }
 }

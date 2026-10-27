@@ -150,6 +150,18 @@ code {
   font: inherit;
 }
 
+.usage {
+  margin-top: 1px;
+}
+
+.usage.problem {
+  color: var(--error);
+}
+
+.key-form button:disabled {
+  color: var(--muted);
+}
+
 .link {
   padding: 0;
   border: none;

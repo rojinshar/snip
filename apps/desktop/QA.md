@@ -69,11 +69,20 @@ Release builds use the hosted API and need an access key (see Beta below).
 - [ ] Remove the access key in Settings, then snip: "Snip needs your access key", and the
       settings window opens.
 - [ ] Paste a malformed key: the window explains the expected format; nothing is saved.
-- [ ] Save a well-formed but wrong key (change one letter), then snip: "Access key not
-      accepted", and the settings window opens.
+- [ ] Settings shows usage under the key: "N of 100,000 snips this month · resets Nov 1",
+      and N goes up after a snip (reopen Settings).
+- [ ] Paste a well-formed but wrong key and Save: "Checking…", then "This key isn't
+      accepted…"; the previous key stays saved.
+- [ ] Turn off Wi-Fi and Save a key: "Couldn't reach Snip…"; nothing is saved.
+- [ ] Revoke your key (`npm run keys -- revoke --id <id>`), then snip: "Access key not
+      accepted", and the settings window opens. Create a new key afterwards.
 - [ ] Paste the owner key and Save: the window shows `Saved: snip_…` with the last four
       characters only. Snip works with `npm run dev:api` stopped.
 - [ ] Quit and relaunch: the key is still saved, and no Keychain prompt appears at any point.
 - [ ] `ls -l ~/Library/Application\ Support/io.github.rojinshar.snip/access-key` shows
       `-rw-------`, and `settings.json` does not contain the key.
 - [ ] Turn off Wi-Fi and snip: "Snip couldn't reach the server", clipboard unchanged.
+- [ ] A successful snip shows ✓ next to the ∫ icon for about 2 seconds; a failure shows !;
+      Esc shows nothing. This works while sharing the screen, when notifications are muted.
+- [ ] Set your quota to your current usage (`npm run keys -- quota --id <id> --quota <used>`)
+      and snip: "Monthly snips used up … reset on Nov 1". Restore the quota afterwards.
