@@ -1,11 +1,11 @@
 {
-  "version": "0.5.2",
-  "notes": "The version now shows at the bottom of Settings.",
-  "pub_date": "2026-10-27T19:49:11.865Z",
+  "version": "0.5.3",
+  "notes": "Tidier spacing at the bottom of Settings.",
+  "pub_date": "2026-10-27T19:53:26.704Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVScGlhYTAyQjhQdnFxUFZKNTdIQXZkTGJtTW1pTG1HODZQRGExWjdyUlh1V1NMTU5vZTZpN3Nxb0NYNCtNYTB5QkNTRWV5NFE3MWswMjlCcEllRTc0NmpkK0I2U2FYYXdRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzMTMwNDkzCWZpbGU6U25pcC5hcHAudGFyLmd6CXZlcnNpb246MC41LjIKRFhOYWpoK2FkdW9NVHN5ZFEraXZaWW1Ma3MwZ2JXa3htOXZYa1R0U3BpTkJHTnpJVXhMRW5MdG1ZT1Fyenhobi9Od2VURUUwbWs2M0FVUXpwUzFLQlE9PQo=",
-      "url": "https://downloads.snip.rojinsharma.com/desktop/0.5.2/Snip_0.5.2_aarch64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVScGlhYTAyQjhQdmlyemFES1FwbmNuVmxvTnlONmlvWk1wRmxTTitGMExVbURGYWoxblF1MFNTbVVaS0VkZUtWQ045Sjg0VmxDQzhWS3liN2JwM3l3OFdkY1Z0Zi9YaEFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzMTMwNzUxCWZpbGU6U25pcC5hcHAudGFyLmd6CXZlcnNpb246MC41LjMKR29hT05LMEs1MEs1TlRYVVJCNUp2NXVWcFdSTG13S3hGQm80Ump1THRqbENJQkkzOFhwUEdwa3NkNW1NNmlyYWRHY2FYVTdYdGVjNEt1N0lEc2NjQUE9PQo=",
+      "url": "https://downloads.snip.rojinsharma.com/desktop/0.5.3/Snip_0.5.3_aarch64.app.tar.gz"
     }
   }
 }
