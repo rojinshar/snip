@@ -151,14 +151,14 @@ pub fn resume_hotkey(app: AppHandle) -> Result<(), String> {
 
 /// What Settings shows for the saved key (`snip_…k3q7`), never the key itself.
 #[tauri::command]
-pub fn get_access_key_hint() -> Option<String> {
-    access_key::load().map(|key| access_key::hint(&key))
+pub fn get_access_key_hint(app: AppHandle) -> Option<String> {
+    access_key::load(&access_key_path(&app).ok()?).map(|key| access_key::hint(&key))
 }
 
 #[tauri::command]
-pub fn set_access_key(key: String) -> Result<String, String> {
+pub fn set_access_key(app: AppHandle, key: String) -> Result<String, String> {
     let key = access_key::normalize(&key).map_err(|error| error.message().to_string())?;
-    access_key::save(&key).map_err(|error| {
+    access_key::save(&access_key_path(&app)?, &key).map_err(|error| {
         log::error!("could not save the access key: {error:?}");
         error.message().to_string()
     })?;
@@ -166,11 +166,21 @@ pub fn set_access_key(key: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn clear_access_key() -> Result<(), String> {
-    access_key::delete().map_err(|error| {
+pub fn clear_access_key(app: AppHandle) -> Result<(), String> {
+    access_key::delete(&access_key_path(&app)?).map_err(|error| {
         log::error!("could not remove the access key: {error:?}");
         error.message().to_string()
     })
+}
+
+pub fn access_key_path(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_config_dir()
+        .map(|dir| access_key::path_in(&dir))
+        .map_err(|error| {
+            log::error!("no app config directory: {error}");
+            "Couldn't save the key. Try again.".into()
+        })
 }
 
 fn save_failed(error: std::io::Error) -> String {

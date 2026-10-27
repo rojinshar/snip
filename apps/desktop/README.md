@@ -11,7 +11,8 @@ changes the hotkey and the delimiters; they are saved to
 
 **API:** release builds (`npm run build:desktop`) use the hosted API at
 `https://api.snip.rojinsharma.com`, which needs an access key: paste it under **Settings… →
-Access key**. It is stored in the macOS Keychain, not in `settings.json`. Debug builds
+Access key**. It is saved to `~/Library/Application Support/io.github.rojinshar.snip/access-key`,
+readable only by you, and never in `settings.json`. Debug builds
 (`npm run dev:desktop`) use the local API (`npm run dev:api`, no key needed). `SNIP_API_URL`
 overrides either.
 
