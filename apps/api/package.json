@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "start": "tsx src/server.ts"
+    "start": "tsx src/server.ts",
+    "dev:worker": "wrangler dev",
+    "deploy": "wrangler deploy"
   },
   "dependencies": {
     "@snip/engine": "*",
