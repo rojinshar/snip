@@ -1,6 +1,6 @@
 # Snip beta (v1): design
 
-- **Status:** accepted (quota and spending cap still proposed)
+- **Status:** accepted
 - **Author:** Rojin Sharma
 - **Last updated:** 2026-10-26
 
@@ -170,7 +170,7 @@ After B1, the author stops running `npm run dev:api`.
 | ----------------------- | ------------------------------------------------------------------------------------ |
 | Hosting                 | Cloudflare Workers, a separate `snip-api` Worker; free plan until CPU says otherwise |
 | Beta authentication     | Access keys created with a script and sent to testers by hand                        |
-| Quota per tester        | 200 successful snips per month (proposed)                                            |
-| Daily spending cap      | $2 per day across all testers (proposed)                                             |
+| Quota per tester        | 200 successful snips per month                                                       |
+| Daily spending cap      | $2 per day across all testers                                                        |
 | Apple Developer Program | The author's existing organization account, used from B4                             |
 | Custom domain           | Not needed for the beta; buy one before launch                                       |
