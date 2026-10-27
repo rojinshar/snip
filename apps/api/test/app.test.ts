@@ -5,7 +5,13 @@ import { MAX_IMAGE_BYTES, createApp } from '../src/app.ts';
 import type { RecognizeResult, Recognizer } from '../src/recognize.ts';
 import { JPEG, PNG } from './helpers.ts';
 
-function setup(result: RecognizeResult | Error = { ok: true, latex: 'x^2', engine: 'lite' }) {
+const attempts = [
+  { engine: 'lite', outcome: 'accepted', ms: 900, inputTokens: 1159, outputTokens: 25 },
+] as const;
+
+function setup(
+  result: RecognizeResult | Error = { ok: true, latex: 'x^2', engine: 'lite', attempts },
+) {
   const lines: Record<string, unknown>[] = [];
   const recognize = vi.fn<Recognizer['recognize']>(() =>
     result instanceof Error ? Promise.reject(result) : Promise.resolve(result),
@@ -70,7 +76,12 @@ describe('POST /v1/recognize', () => {
   });
 
   it('maps no_math_found to 422', async () => {
-    const { app } = setup({ ok: false, error: 'no_math_found', detail: 'lite: empty output' });
+    const { app } = setup({
+      ok: false,
+      error: 'no_math_found',
+      detail: 'lite: empty output',
+      attempts: [],
+    });
     const res = await postImage(app, PNG).expect(422);
     expect(res.body).toEqual({
       error: 'no_math_found',
@@ -79,7 +90,12 @@ describe('POST /v1/recognize', () => {
   });
 
   it('maps upstream_failed to 502', async () => {
-    const { app } = setup({ ok: false, error: 'upstream_failed', detail: 'lite: 503' });
+    const { app } = setup({
+      ok: false,
+      error: 'upstream_failed',
+      detail: 'lite: 503',
+      attempts: [],
+    });
     const res = await postImage(app, PNG).expect(502);
     expect(res.body).toMatchObject({ error: 'upstream_failed' });
   });
@@ -105,13 +121,20 @@ describe('request logging', () => {
         path: '/v1/recognize',
         status: 200,
         ms: expect.any(Number) as number,
+        bytes: PNG.length,
         engine: 'lite',
+        attempts,
       },
     ]);
   });
 
   it('includes the failure detail for diagnosis', async () => {
-    const { app, lines } = setup({ ok: false, error: 'upstream_failed', detail: 'lite: 503' });
+    const { app, lines } = setup({
+      ok: false,
+      error: 'upstream_failed',
+      detail: 'lite: 503',
+      attempts: [],
+    });
     await postImage(app, PNG).expect(502);
     expect(lines[0]).toMatchObject({ status: 502, detail: 'lite: 503' });
   });

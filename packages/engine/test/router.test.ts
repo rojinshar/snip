@@ -8,7 +8,7 @@ const image: OcrImage = { data: Buffer.from(''), mimeType: 'image/png' };
 function engine(
   id: string,
   behavior: string | Error,
-  options: { costUsd?: number; confidence?: OcrConfidence } = {},
+  options: { costUsd?: number; confidence?: OcrConfidence; retries?: number } = {},
 ): OcrEngine {
   return {
     id,
@@ -19,6 +19,7 @@ function engine(
             latex: behavior,
             usage: { inputTokens: 1, outputTokens: 1, costUsd: options.costUsd ?? 0.001 },
             ...(options.confidence ? { confidence: options.confidence } : {}),
+            ...(options.retries ? { retries: options.retries } : {}),
           }),
   };
 }
@@ -52,6 +53,13 @@ describe('OcrRouter', () => {
       ['fallback', 'accepted'],
     ]);
     expect(result.attempts[1]?.detail).toBe('timeout');
+  });
+
+  it('records how many retries an attempt took', async () => {
+    const router = new OcrRouter(steps(engine('lite', 'x^2', { retries: 1 })));
+    const result = await router.recognize(image);
+
+    expect(result.attempts[0]).toMatchObject({ engineId: 'lite', retries: 1 });
   });
 
   it('sums cost across every attempt', async () => {

@@ -36,7 +36,7 @@ export function createApp(deps: AppDeps): Express {
   const app = express();
   app.disable('x-powered-by');
 
-  // Request id + one structured log line per request. Never logs image data.
+  // Request id + one structured log line per request. Never logs image data or LaTeX.
   app.use((req, res, next) => {
     const id = requestId();
     const startedAt = now();
@@ -49,8 +49,10 @@ export function createApp(deps: AppDeps): Express {
         path: req.path,
         status: res.statusCode,
         ms: Math.round(now() - startedAt),
+        ...(typeof res.locals.bytes === 'number' ? { bytes: res.locals.bytes } : {}),
         ...(typeof res.locals.engine === 'string' ? { engine: res.locals.engine } : {}),
         ...(typeof res.locals.detail === 'string' ? { detail: res.locals.detail } : {}),
+        ...(Array.isArray(res.locals.attempts) ? { attempts: res.locals.attempts } : {}),
       });
     });
     next();
@@ -73,8 +75,10 @@ export function createApp(deps: AppDeps): Express {
         return;
       }
 
+      res.locals.bytes = data.length;
       const startedAt = now();
       const result = await deps.recognizer.recognize({ data, mimeType });
+      res.locals.attempts = result.attempts;
       if (!result.ok) {
         res.locals.detail = result.detail;
         sendError(res, result.error);

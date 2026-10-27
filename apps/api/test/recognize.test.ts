@@ -23,7 +23,7 @@ describe('createRouterRecognizer', () => {
     const result = await recognizerFor(answers('lite', 'x^2'), answers('flash', 'y')).recognize(
       image,
     );
-    expect(result).toEqual({ ok: true, latex: 'x^2', engine: 'lite' });
+    expect(result).toMatchObject({ ok: true, latex: 'x^2', engine: 'lite' });
   });
 
   it('falls back when the first engine returns unrenderable LaTeX', async () => {
@@ -31,7 +31,31 @@ describe('createRouterRecognizer', () => {
       answers('lite', '\\frac{a'),
       answers('flash', '\\frac{a}{b}'),
     ).recognize(image);
-    expect(result).toEqual({ ok: true, latex: '\\frac{a}{b}', engine: 'flash' });
+    expect(result).toMatchObject({ ok: true, latex: '\\frac{a}{b}', engine: 'flash' });
+  });
+
+  it('summarizes every attempt for the request log, without the LaTeX', async () => {
+    const counted: OcrEngine = {
+      id: 'lite',
+      recognize: () =>
+        Promise.resolve({
+          latex: 'x^2',
+          usage: { inputTokens: 1159, outputTokens: 25, costUsd: 0 },
+          retries: 1,
+        }),
+    };
+    const result = await recognizerFor(answers('broken', '\\frac{a'), counted).recognize(image);
+    expect(result.attempts).toEqual([
+      { engine: 'broken', outcome: 'invalid', ms: expect.any(Number) as number },
+      {
+        engine: 'lite',
+        outcome: 'accepted',
+        ms: expect.any(Number) as number,
+        inputTokens: 1159,
+        outputTokens: 25,
+        retries: 1,
+      },
+    ]);
   });
 
   it('reports no_math_found when every engine answered but none rendered', async () => {

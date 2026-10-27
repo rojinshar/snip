@@ -58,9 +58,27 @@ incomplete and macOS can refuse to open it from Finder. Because the signature is
 - **Screen Recording:** the first snip asks for permission. Turn on Snip under **Privacy &
   Security → Screen Recording**, then choose **Restart Snip** from the ∫ menu. macOS only
   applies the grant after a relaunch. Each rebuild changes the ad-hoc signature, so after
-  installing a new build, reset the old grant with
-  `tccutil reset ScreenCapture io.github.rojinshar.snip` and grant it again. Signing with a
-  Developer ID in a later phase makes the grant survive updates.
+  installing a new build, run `npm run reset:desktop-permission` (quits Snip, runs
+  `tccutil reset ScreenCapture io.github.rojinshar.snip`, relaunches) and grant it again. To
+  avoid this,
+  sign with a stable local certificate (below).
+
+### Keep the Screen Recording grant across rebuilds
+
+macOS ties the grant to the app's signing identity. An ad-hoc signature is new on every
+build; a certificate in your keychain is not. One-time setup, no Apple account needed:
+
+1. Open **Keychain Access → Certificate Assistant → Create a Certificate…**
+2. Name: `Snip Local Dev`. Identity Type: **Self-Signed Root**. Certificate Type:
+   **Code Signing**. Click **Create**.
+3. Add `export APPLE_SIGNING_IDENTITY="Snip Local Dev"` to `~/.zshrc` and open a new
+   terminal. Tauri uses this instead of `signingIdentity` in `tauri.conf.json`.
+4. Build, then reset and grant Screen Recording one last time. On the first build, macOS
+   asks whether `codesign` may use the key: choose **Always Allow**.
+
+Check which identity a build used with `codesign -dv /Applications/Snip.app 2>&1 | grep Authority`.
+A Developer ID replaces this certificate when distribution starts.
+
 - **`npm run dev:desktop`:** in development, macOS attributes Screen Recording to the
   terminal app that started it (Terminal, iTerm or VS Code), so grant it there.
 

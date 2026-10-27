@@ -9,12 +9,12 @@ const noSleep = () => Promise.resolve();
 describe('withRetry', () => {
   it('retries retryable errors until success', async () => {
     const fn = vi
-      .fn<() => Promise<string>>()
+      .fn<(attempt: number) => Promise<string>>()
       .mockRejectedValueOnce(new OcrEngineError('e', 'rate limited', { retryable: true }))
       .mockResolvedValueOnce('ok');
 
     await expect(withRetry(fn, policy, noSleep)).resolves.toBe('ok');
-    expect(fn).toHaveBeenCalledTimes(2);
+    expect(fn.mock.calls).toEqual([[1], [2]]);
   });
 
   it('does not retry non-retryable errors', async () => {
