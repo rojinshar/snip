@@ -6,6 +6,13 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
 
 /**
+ * Served from R2, not the site's static assets: those answer byte-range requests with the
+ * whole file, and iPhone Safari won't play a video without range support. Upload a new cut
+ * with: wrangler r2 object put snip-releases/site/snip-demo.mp4 --file <mp4> --remote
+ */
+const VIDEO_URL = 'https://downloads.snip.rojinsharma.com/site/snip-demo.mp4';
+
+/**
  * The real recording: Snip at real speed, the Overleaf part trimmed. It loops silently, or,
  * for people who ask their system for reduced motion, waits on its poster for a click. If
  * the video can't play, the static screen-to-clipboard example stands in.
@@ -43,7 +50,7 @@ export function Demo() {
       <div className="relative">
         <video
           ref={video}
-          src="/snip-demo.mp4"
+          src={VIDEO_URL}
           poster="/snip-demo-poster.jpg"
           loop
           muted
