@@ -1,6 +1,8 @@
 'use client';
 
-import { type SubmitEvent, useState } from 'react';
+import { type SubmitEvent, useEffect, useState } from 'react';
+
+import { refTracker } from '@/lib/ref';
 
 type Status =
   { kind: 'idle' } | { kind: 'submitting' } | { kind: 'done' } | { kind: 'error'; message: string };
@@ -13,6 +15,10 @@ const errorResponse = (body: unknown): string =>
 export function WaitlistForm({ id }: { id: string }) {
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
 
+  useEffect(() => {
+    refTracker.capture(window.location.search);
+  }, []);
+
   async function onSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -24,7 +30,7 @@ export function WaitlistForm({ id }: { id: string }) {
         body: JSON.stringify({
           email: form.get('email'),
           website: form.get('website'),
-          source: new URLSearchParams(window.location.search).get('ref') ?? undefined,
+          source: refTracker.current(),
         }),
       });
       if (response.ok) {
@@ -79,7 +85,7 @@ export function WaitlistForm({ id }: { id: string }) {
         disabled={status.kind === 'submitting'}
         className="rounded-lg bg-indigo-600 px-5 py-3 font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
       >
-        {status.kind === 'submitting' ? 'Joining…' : 'Join the waitlist'}
+        {status.kind === 'submitting' ? 'Joining…' : 'Get 200 free snips'}
       </button>
       {status.kind === 'error' && (
         <p role="alert" className="text-sm text-red-600 sm:basis-full">
