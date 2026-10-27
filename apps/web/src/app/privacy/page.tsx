@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
 import { SiteFooter } from '@/components/site-chrome';
-import { SiteNav } from '@/components/site-nav';
 
 export const metadata: Metadata = {
   title: 'Privacy · Snip',
@@ -27,7 +26,6 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 export default function Privacy() {
   return (
     <>
-      <SiteNav />
       <main className="mx-auto max-w-2xl px-6 pt-10 pb-16">
         <h1 className="text-4xl font-bold tracking-tight">Privacy</h1>
         <p className="mt-3 text-sm text-slate-500">Last updated {UPDATED}</p>

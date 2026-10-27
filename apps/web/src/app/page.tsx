@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { Demo } from '@/components/demo';
 import { FounderNote } from '@/components/founder-note';
 import { SiteFooter } from '@/components/site-chrome';
-import { SiteNav } from '@/components/site-nav';
 import { WaitlistForm } from '@/components/waitlist-form';
 import {
   MATHPIX_CHECKED,
@@ -100,7 +99,6 @@ const faqs = [
 export default function Home() {
   return (
     <>
-      <SiteNav />
       <main>
         <section id="signup" className="mx-auto max-w-5xl px-6 pt-12 pb-12 text-center sm:pt-20">
           <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight sm:text-6xl">

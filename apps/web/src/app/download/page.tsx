@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { DownloadAction, SETUP_SECTION_ID } from '@/components/download-action';
 import { SnipHotkey } from '@/components/kbd';
 import { SiteFooter } from '@/components/site-chrome';
-import { SiteNav } from '@/components/site-nav';
 import { DOWNLOAD_URL, LATEST_VERSION } from '@/lib/release';
 
 export const metadata: Metadata = {
@@ -27,7 +26,6 @@ const steps = [
 export default function Download() {
   return (
     <>
-      <SiteNav />
       <main>
         <section className="mx-auto max-w-3xl px-6 pt-12 pb-16 text-center sm:pt-16">
           <p className="inline-block rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700">
