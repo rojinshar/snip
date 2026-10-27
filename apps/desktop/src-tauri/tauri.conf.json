@@ -1,8 +1,8 @@
 {
   "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Snip",
-  "version": "0.4.0",
-  "identifier": "io.github.rojinshar.snip",
+  "version": "0.5.1",
+  "identifier": "com.rojinsharma.snip",
   "build": {
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist",
@@ -30,6 +30,13 @@
     "macOS": {
       "minimumSystemVersion": "13.0",
       "signingIdentity": "-"
+    },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJFMEYxRkQ4QjRBNjg5NjkKUldScGlhYTAyQjhQdnVvMG5Zb2xDOWRqeUIwZzc2T2pKMTVjakR5M0EvRGRTK2U5NlB6K093U3EK",
+      "endpoints": ["https://snip.rojinsharma.com/updates/latest.json"]
     }
   }
 }

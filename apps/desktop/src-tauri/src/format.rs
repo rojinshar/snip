@@ -1,4 +1,4 @@
-//! How recognized LaTeX is written to the clipboard and shown in notifications.
+//! How recognized LaTeX is written to the clipboard, and how usage is described.
 
 use serde::{Deserialize, Serialize};
 
@@ -21,16 +21,6 @@ pub fn wrap(latex: &str, delimiters: Delimiters) -> String {
         Delimiters::DisplayDollar => format!("$${latex}$$"),
         Delimiters::None => latex.to_string(),
     }
-}
-
-/// One-line preview for a notification: whitespace collapsed, cut at `max_chars`.
-pub fn preview(latex: &str, max_chars: usize) -> String {
-    let flat = latex.split_whitespace().collect::<Vec<_>>().join(" ");
-    if flat.chars().count() <= max_chars {
-        return flat;
-    }
-    let cut: String = flat.chars().take(max_chars.saturating_sub(1)).collect();
-    format!("{}…", cut.trim_end())
 }
 
 /// "2026-11-01T00:00:00.000Z" → "Nov 1". The server sends UTC midnight, so the date part is
@@ -99,17 +89,6 @@ mod tests {
     #[test]
     fn default_is_inline_dollar() {
         assert_eq!(Delimiters::default(), Delimiters::InlineDollar);
-    }
-
-    #[test]
-    fn preview_flattens_and_truncates() {
-        let latex = "\\begin{aligned}\n  a &= b \\\\\n  c &= d\n\\end{aligned}";
-        assert_eq!(
-            preview(latex, 200),
-            "\\begin{aligned} a &= b \\\\ c &= d \\end{aligned}"
-        );
-        assert_eq!(preview(latex, 12), "\\begin{alig…");
-        assert_eq!(preview("x^2", 12), "x^2");
     }
 
     #[test]

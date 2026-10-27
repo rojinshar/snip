@@ -25,6 +25,8 @@
     "dev:web": "npm run dev --workspace @snip/web",
     "dev:desktop": "npm run dev --workspace @snip/desktop",
     "build:desktop": "npm run build --workspace @snip/desktop",
+    "release:desktop": "bash apps/desktop/scripts/release.sh",
+    "publish:desktop": "bash apps/desktop/scripts/publish.sh",
     "reset:desktop-permission": "npm run reset-permission --workspace @snip/desktop",
     "dev:api": "npm run dev --workspace @snip/api",
     "db:migrate": "npm run migrate --workspace @snip/db",

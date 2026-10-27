@@ -1,0 +1,11 @@
+{
+  "version": "0.5.1",
+  "notes": "Automatic updates, and a simpler Copied to clipboard notification.",
+  "pub_date": "2026-10-27T19:39:41.950Z",
+  "platforms": {
+    "darwin-aarch64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVScGlhYTAyQjhQdnB1cnN4WS8yYnJPa2JNcEFCalFyL25jcDN5LzdmZ1BwVElwenVHVjNSTW9OQ1FGYUZCUncrYnBwYmhhMlhPSXRML3ptcWlNanl2d0J1Q2lESVVZZHdRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzMTI5ODIwCWZpbGU6U25pcC5hcHAudGFyLmd6CXZlcnNpb246MC41LjEKNHhBTUVoRlBVQ0w0RTZIYTh3VGRseHdwb2cxWFA5a3BjSDBKSjZOMHV4bmY5N04zNTBKUk80dzdHaUgyVUpZdDlhOU1XaEFmZFhYYUVITFNPTDcvQWc9PQo=",
+      "url": "https://downloads.snip.rojinsharma.com/desktop/0.5.1/Snip_0.5.1_aarch64.app.tar.gz"
+    }
+  }
+}
