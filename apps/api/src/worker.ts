@@ -2,21 +2,24 @@
 // through Workers' Node.js HTTP compatibility; only configuration and logging differ from
 // server.ts.
 import { httpServerHandler } from 'cloudflare:node';
-import { env } from 'cloudflare:workers';
+import { env, waitUntil } from 'cloudflare:workers';
 import { z } from 'zod';
 
 import { createApp } from './app.ts';
-import { ownerKeyAuthorizer } from './auth.ts';
+import { accessLimitsSchema } from './config.ts';
+import { createNeonAccessStore } from './access-store.ts';
 import { createJsonLogger } from './logger.ts';
 import { createGeminiRecognizer } from './recognizer.ts';
 
 const PORT = 8080;
 
-const workerEnvSchema = z.object({
-  GEMINI_API_KEY: z.string().trim().min(1, 'GEMINI_API_KEY secret is required'),
-  // Unlike local development, the public API never runs without a key.
-  SNIP_OWNER_KEY: z.string().trim().min(1, 'SNIP_OWNER_KEY secret is required'),
-});
+const workerEnvSchema = z
+  .object({
+    GEMINI_API_KEY: z.string().trim().min(1, 'GEMINI_API_KEY secret is required'),
+    // Unlike local development, the public API always checks access keys.
+    DATABASE_URL: z.string().trim().min(1, 'DATABASE_URL secret is required'),
+  })
+  .extend(accessLimitsSchema.shape);
 
 const config = workerEnvSchema.parse(env);
 
@@ -26,7 +29,15 @@ createApp({
   logger: createJsonLogger((line) => {
     console.log(line);
   }),
-  authorize: ownerKeyAuthorizer(config.SNIP_OWNER_KEY),
+  access: {
+    store: createNeonAccessStore(config.DATABASE_URL),
+    limits: {
+      requestsPerMinute: config.RATE_LIMIT_PER_MINUTE,
+      dailySpendCapUsd: config.DAILY_SPEND_CAP_USD,
+    },
+    // Write the usage row after responding, without the Worker ending first.
+    defer: waitUntil,
+  },
 }).listen(PORT);
 
 export default httpServerHandler({ port: PORT });

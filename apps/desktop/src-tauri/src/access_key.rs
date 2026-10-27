@@ -1,21 +1,24 @@
-//! The tester's access key (docs/beta-v1.md §4), kept in the macOS Keychain rather than in
-//! settings.json.
+//! The tester's access key (docs/beta-v1.md §4), kept in its own file in the app config
+//! directory, readable only by the user (mode 0600) and never in settings.json.
+//!
+//! Not the Keychain: with ad-hoc signed builds macOS asks for permission on every read, and
+//! the key is revocable and quota-limited, so a private file is the better trade-off until
+//! builds are signed with a Developer ID.
 
-use security_framework::passwords::{
-    delete_generic_password, get_generic_password, set_generic_password,
-};
+use std::fs::{self, OpenOptions};
+use std::io::{self, Write};
+use std::os::unix::fs::OpenOptionsExt;
+use std::path::{Path, PathBuf};
 
-const SERVICE: &str = "io.github.rojinshar.snip";
-const ACCOUNT: &str = "access-key";
+pub const FILE_NAME: &str = "access-key";
+
 const PREFIX: &str = "snip_";
 const RANDOM_LEN: usize = 26;
-/// `errSecItemNotFound`.
-const NOT_FOUND: i32 = -25300;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum KeyError {
     Format,
-    Keychain(String),
+    Storage(String),
 }
 
 impl KeyError {
@@ -24,7 +27,7 @@ impl KeyError {
             Self::Format => {
                 "That doesn't look like a Snip access key (snip_ and 26 letters or digits)."
             }
-            Self::Keychain(_) => "Couldn't use the Keychain. Try again.",
+            Self::Storage(_) => "Couldn't save the key. Try again.",
         }
     }
 }
@@ -55,11 +58,15 @@ pub fn hint(key: &str) -> String {
     format!("{PREFIX}…{tail}")
 }
 
-/// The saved key, or None if there is none or the Keychain can't be read.
-pub fn load() -> Option<String> {
-    match get_generic_password(SERVICE, ACCOUNT) {
-        Ok(bytes) => String::from_utf8(bytes).ok(),
-        Err(error) if error.code() == NOT_FOUND => None,
+pub fn path_in(config_dir: &Path) -> PathBuf {
+    config_dir.join(FILE_NAME)
+}
+
+/// The saved key, or None if there is none or the file doesn't hold a valid key.
+pub fn load(path: &Path) -> Option<String> {
+    match fs::read_to_string(path) {
+        Ok(text) => normalize(&text).ok(),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => None,
         Err(error) => {
             log::warn!("could not read the access key: {error}");
             None
@@ -67,24 +74,48 @@ pub fn load() -> Option<String> {
     }
 }
 
-pub fn save(key: &str) -> Result<(), KeyError> {
-    set_generic_password(SERVICE, ACCOUNT, key.as_bytes())
-        .map_err(|error| KeyError::Keychain(error.to_string()))
+/// Writes atomically, with the file created as 0600 so no other user can read it.
+pub fn save(path: &Path, key: &str) -> Result<(), KeyError> {
+    write_private(path, key).map_err(|error| KeyError::Storage(error.to_string()))
 }
 
-pub fn delete() -> Result<(), KeyError> {
-    match delete_generic_password(SERVICE, ACCOUNT) {
+pub fn delete(path: &Path) -> Result<(), KeyError> {
+    match fs::remove_file(path) {
         Ok(()) => Ok(()),
-        Err(error) if error.code() == NOT_FOUND => Ok(()),
-        Err(error) => Err(KeyError::Keychain(error.to_string())),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(KeyError::Storage(error.to_string())),
     }
+}
+
+fn write_private(path: &Path, key: &str) -> io::Result<()> {
+    if let Some(dir) = path.parent() {
+        fs::create_dir_all(dir)?;
+    }
+    let tmp = path.with_extension("tmp");
+    let _ = fs::remove_file(&tmp);
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(&tmp)?;
+    file.write_all(key.as_bytes())?;
+    file.sync_all()?;
+    fs::rename(&tmp, path)
 }
 
 #[cfg(test)]
 mod tests {
+    use std::os::unix::fs::PermissionsExt;
+
     use super::*;
 
     const KEY: &str = "snip_abcdefghijklmnopqrstuvwx23";
+
+    fn key_path() -> (tempfile::TempDir, PathBuf) {
+        let dir = tempfile::tempdir().unwrap();
+        let path = path_in(&dir.path().join("config"));
+        (dir, path)
+    }
 
     #[test]
     fn accepts_a_well_formed_key_and_trims_paste_whitespace() {
@@ -111,5 +142,33 @@ mod tests {
     #[test]
     fn hint_shows_only_the_last_four_characters() {
         assert_eq!(hint(KEY), "snip_…wx23");
+    }
+
+    #[test]
+    fn saves_loads_and_deletes() {
+        let (_dir, path) = key_path();
+        assert_eq!(load(&path), None);
+        save(&path, KEY).unwrap();
+        assert_eq!(load(&path), Some(KEY.to_string()));
+        delete(&path).unwrap();
+        assert_eq!(load(&path), None);
+        delete(&path).unwrap();
+    }
+
+    #[test]
+    fn the_file_is_readable_only_by_the_user() {
+        let (_dir, path) = key_path();
+        save(&path, KEY).unwrap();
+        let mode = fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600);
+        assert!(!path.with_extension("tmp").exists());
+    }
+
+    #[test]
+    fn a_damaged_file_counts_as_no_key() {
+        let (_dir, path) = key_path();
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(&path, "not a key").unwrap();
+        assert_eq!(load(&path), None);
     }
 }

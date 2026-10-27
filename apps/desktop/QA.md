@@ -73,6 +73,7 @@ Release builds use the hosted API and need an access key (see Beta below).
       accepted", and the settings window opens.
 - [ ] Paste the owner key and Save: the window shows `Saved: snip_…` with the last four
       characters only. Snip works with `npm run dev:api` stopped.
-- [ ] Quit and relaunch: the key is still saved (Keychain), and `settings.json` does not
-      contain it.
+- [ ] Quit and relaunch: the key is still saved, and no Keychain prompt appears at any point.
+- [ ] `ls -l ~/Library/Application\ Support/io.github.rojinshar.snip/access-key` shows
+      `-rw-------`, and `settings.json` does not contain the key.
 - [ ] Turn off Wi-Fi and snip: "Snip couldn't reach the server", clipboard unchanged.

@@ -26,7 +26,9 @@
     "dev:desktop": "npm run dev --workspace @snip/desktop",
     "build:desktop": "npm run build --workspace @snip/desktop",
     "reset:desktop-permission": "npm run reset-permission --workspace @snip/desktop",
-    "dev:api": "npm run dev --workspace @snip/api"
+    "dev:api": "npm run dev --workspace @snip/api",
+    "db:migrate": "npm run migrate --workspace @snip/db",
+    "keys": "npm run keys --workspace @snip/api --"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

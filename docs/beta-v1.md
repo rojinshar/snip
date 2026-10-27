@@ -75,10 +75,12 @@ by hand.
   checkout in the launch phase collects the email address anyway.
 - **Storage:** only the SHA-256 hash of a key is stored, with the tester's email (for
   contact), a monthly quota, and a revoked flag. A key is shown once, when it is created.
-- **In the app:** pasted into Settings and stored in the macOS Keychain, not in
-  `settings.json`. Sent as `Authorization: Bearer <key>`.
-- **Admin:** `npm run keys:create -- --email a@b.c [--quota 200]`, `keys:revoke`,
-  `keys:list` (usage this month per key).
+- **In the app:** pasted into Settings and stored in its own file, `access-key`, in the app
+  config directory, readable only by the user (mode 0600) and kept out of `settings.json`.
+  Sent as `Authorization: Bearer <key>`. Not the Keychain: ad-hoc signed builds make macOS
+  ask for permission on every read. Revisit once builds are Developer ID signed (B4).
+- **Admin:** `npm run keys -- create --email a@b.c [--quota 200]`, `keys -- list` (usage
+  this month per key), `keys -- quota`, `keys -- revoke`.
 
 ## 5. Quotas, limits and the spending cap
 
@@ -98,8 +100,8 @@ rejected request costs nothing. Two simultaneous requests can both pass the quot
 going one or two snips over is acceptable at this scale.
 
 **Database:** the existing Neon Postgres (the waitlist database), via its HTTP driver,
-which works on Workers. Migrations move from `apps/web/db` to a top-level `db/` shared by
-the website and the API.
+which works on Workers. The schema and migrations live in `packages/db`, shared by the
+website and the API (`npm run db:migrate`).
 
 **Latency risk:** Neon's free tier suspends after about 5 minutes idle, and waking it
 adds a few hundred ms. If B2 measurements show that, the key check runs alongside the
@@ -124,8 +126,8 @@ GET /v1/me                Authorization: Bearer snip_…
 
 - **API URL:** release builds use the production URL. `SNIP_API_URL` still overrides it
   for development.
-- **Settings:** an **Access key** field (paste, verify with `GET /v1/me`, save to the
-  Keychain) and a usage line: "37 of 200 snips this month".
+- **Settings:** an **Access key** field (paste, verify with `GET /v1/me`, save) and a usage
+  line: "37 of 200 snips this month".
 - **Notifications** for the new errors. Without a key, a snip says "Add your access key in
   Settings" and opens the settings window.
 
@@ -154,7 +156,7 @@ Each is one branch and one PR-sized change.
 | --- | ---------------------------------------------------------------------------------------- | ------------------------------------- |
 | B1  | API on Workers (Express kept, same tests), deployed on push; one owner key from a secret | Hosting, latency, CPU time            |
 | B2  | Access keys, `snips` table, quota, rate limit, spending cap, `GET /v1/me`, admin scripts | Costs are bounded per key and per day |
-| B3  | App: key in the Keychain, Settings field and usage, new errors, production URL           | A tester can set up alone             |
+| B3  | App: verify the key on save, usage in Settings, new errors                               | A tester can set up alone             |
 | B4  | Developer ID signing and notarization; beta `.dmg`; QA on a second Mac                   | Installs like a real Mac app          |
 | B5  | Invite 10 waitlist users; collect feedback; review cost and latency                      | People want it                        |
 
@@ -164,7 +166,7 @@ After B1, the author stops running `npm run dev:api`.
 
 | Risk                                       | Likelihood    | Mitigation                                                   |
 | ------------------------------------------ | ------------- | ------------------------------------------------------------ |
-| A key is shared or leaked                  | Medium        | Quota per key, spending cap, `keys:revoke`                   |
+| A key is shared or leaked                  | Medium        | Quota per key, spending cap, `keys -- revoke`                |
 | Workers CPU time per request is too high   | Low           | Measured in B1; Fly.io is the fallback with no code changes  |
 | Neon wake-up adds latency                  | Medium        | Measured in B2; run the key check alongside Gemini           |
 | Gemini outage or price change              | Low           | Engine is swappable; the spending cap bounds price surprises |

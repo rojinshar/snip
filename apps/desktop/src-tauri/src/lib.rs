@@ -272,7 +272,9 @@ fn recognize_capture(
     timings.resized = prepared.resized;
 
     let request_started = Instant::now();
-    let access_key = access_key::load();
+    let access_key = settings_window::access_key_path(app)
+        .ok()
+        .and_then(|path| access_key::load(&path));
     let recognition = app
         .state::<SnipState>()
         .api

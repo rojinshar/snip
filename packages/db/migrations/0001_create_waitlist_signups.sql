@@ -1,5 +1,5 @@
 -- Waitlist sign-ups from the landing page.
--- Apply once in the Neon SQL editor, or: psql "$DATABASE_URL" -f this-file.sql
+-- Applied by `npm run db:migrate`.
 
 CREATE TABLE IF NOT EXISTS waitlist_signups (
   id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

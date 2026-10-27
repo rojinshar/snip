@@ -16,15 +16,10 @@ unavailable."
 
 ## Database
 
-Put the Neon connection string in `apps/web/.env.local` as `DATABASE_URL` (git-ignored),
-then apply migrations:
-
-```sh
-npm run db:migrate --workspace @snip/web
-```
-
-`db:migrate` applies `db/migrations/*.sql` in order, records them in `schema_migrations`,
-and skips any that already ran, so it is safe to re-run. To read sign-ups:
+Put the Neon connection string in `apps/web/.env.local` as `DATABASE_URL` (git-ignored).
+The schema is shared with the API and lives in [`packages/db`](../../packages/db); apply it
+from the repo root with `npm run db:migrate` (reads `DATABASE_URL` from the root `.env`).
+To read sign-ups:
 
 ```sql
 SELECT email, source, created_at FROM waitlist_signups ORDER BY created_at DESC;
@@ -71,4 +66,3 @@ secrets from `apps/web/.dev.vars` (git-ignored).
 | `src/app/api/waitlist/route.ts`       | `POST /api/waitlist`, a thin wrapper                   |
 | `src/lib/waitlist.ts`                 | Validation and handling, tested with a fake repository |
 | `src/lib/neon-waitlist-repository.ts` | Postgres insert (idempotent on email)                  |
-| `db/migrations/`                      | SQL migrations                                         |
