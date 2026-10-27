@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
-    "build": "tauri build",
+    "build": "tauri build && rm -rf src-tauri/target/release/bundle/macos/Snip.app",
     "dev:ui": "vite",
     "build:ui": "vite build",
     "test": "cargo test --manifest-path src-tauri/Cargo.toml",

@@ -64,6 +64,9 @@ The script keeps the Mac awake with `caffeinate`, since Apple can take minutes t
 Because the signature is stable, the Screen Recording grant survives updates, and the app
 opens without security warnings.
 
+Both build commands delete the intermediate `Snip.app` once the `.dmg` is made, so the only
+Snip on the Mac is the one installed from the `.dmg` (otherwise Spotlight lists both).
+
 ## Local build (ad hoc signed)
 
 ```sh

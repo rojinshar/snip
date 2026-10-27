@@ -64,4 +64,8 @@ xcrun stapler validate "$dmg"
 spctl --assess --type execute --verbose=2 "$app"
 spctl --assess --type open --context context:primary-signature --verbose=2 "$dmg"
 
+# The .dmg holds its own copy. Removing the build copy keeps Spotlight from listing a second
+# Snip next to the installed one.
+rm -rf "$app"
+
 echo "==> Ready to distribute: $dmg"
