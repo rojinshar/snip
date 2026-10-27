@@ -73,6 +73,11 @@ pub fn on_menu_click(app: &AppHandle) {
     check(app, true);
 }
 
+/// The notification title once an update is installed and waiting for a restart.
+pub fn ready_title(version: &str) -> String {
+    format!("Snip {version} is ready to install")
+}
+
 /// Runs one check off the main thread. `manual` checks report "up to date" and failures;
 /// background checks stay quiet unless an update is ready.
 fn check(app: &AppHandle, manual: bool) {
@@ -91,10 +96,11 @@ fn check(app: &AppHandle, manual: bool) {
                 if let Err(error) = state.item.set_text(menu_label(Some(&version))) {
                     log::warn!("could not update the menu: {error}");
                 }
+                let title = ready_title(&version);
                 *state.ready.lock().unwrap_or_else(PoisonError::into_inner) = Some(version);
                 crate::notify(
                     &app,
-                    "Snip update ready",
+                    &title,
                     "Choose Restart to Update from the ∫ menu when convenient.",
                 );
             }
@@ -136,5 +142,10 @@ mod tests {
     fn menu_label_offers_a_check_until_an_update_is_installed() {
         assert_eq!(menu_label(None), "Check for Updates…");
         assert_eq!(menu_label(Some("0.5.2")), "Restart to Update to 0.5.2");
+    }
+
+    #[test]
+    fn ready_notification_names_the_version() {
+        assert_eq!(ready_title("0.5.4"), "Snip 0.5.4 is ready to install");
     }
 }
