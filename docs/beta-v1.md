@@ -22,7 +22,7 @@ app, while keeping the author's costs small and capped.
 
 ## 2. Non-goals (beta)
 
-Payments, email sign-in, self-serve sign-up, auto-update, Windows, team accounts, and
+Payments, email sign-in, self-serve sign-up, Windows, team accounts, and
 storing images or LaTeX on the server. Payments and sign-in come together in the launch
 phase, since a checkout already collects an email address.
 
@@ -158,10 +158,20 @@ Each is one branch and one PR-sized change.
 | B1  | API on Workers (Express kept, same tests), deployed on push; one owner key from a secret | Hosting, latency, CPU time            |
 | B2  | Access keys, `snips` table, quota, rate limit, spending cap, `GET /v1/me`, admin scripts | Costs are bounded per key and per day |
 | B3  | App: verify the key on save, usage in Settings, new errors, ✓/! menu-bar mark            | A tester can set up alone             |
-| B4  | Developer ID signing and notarization; beta `.dmg`; QA on a second Mac                   | Installs like a real Mac app          |
-| B5  | Invite 10 waitlist users; collect feedback; review cost and latency                      | People want it                        |
+| B4  | Developer ID signing and notarization; auto-update (§13); QA on a clean account          | Installs and updates like a Mac app   |
+| B5  | Download page; invite 10 waitlist users; collect feedback; review cost and latency       | People want it                        |
 
 After B1, the author stops running `npm run dev:api`.
+
+### Status (2026-10-27)
+
+- **Done:** B1, B2, B3. B4 signing and notarization (`npm run release:desktop`), verified on
+  a clean macOS account.
+- **Next in B4:** auto-update (§13), then release 0.5.1 with it.
+- **B5:** `snip.rojinsharma.com/download`; create tester keys; invite the first 10 waitlist
+  users with the `.dmg` and their key; watch cost, latency and errors for a week.
+- **Open quality bugs:** doubled `$` when a selection mixes prose and math; empty output
+  escalates to the slower model, so "no equation" takes 4–5 s.
 
 ## 11. Risks
 
@@ -183,3 +193,39 @@ After B1, the author stops running `npm run dev:api`.
 | Daily spending cap      | $2 per day across all testers                                                        |
 | Apple Developer Program | The author's existing organization account, used from B4                             |
 | Custom domain           | Not needed for the beta; buy one before launch                                       |
+
+## 13. Auto-update (B4)
+
+Testers who install once must receive every later fix without reinstalling.
+
+**Mechanism:** Tauri's updater plugin. Snip checks
+`https://snip.rojinsharma.com/updates/latest.json` 30 seconds after launch and then daily,
+plus **Check for Updates…** in the menu. If a newer version is listed, it downloads and
+installs it in the background, then the menu shows **Restart to Update** and a notification
+says the update is ready. Nothing restarts without the user choosing to.
+
+**Hosting:**
+
+| What                                           | Where                                                                     |
+| ---------------------------------------------- | ------------------------------------------------------------------------- |
+| `latest.json` (version, notes, URL, signature) | `apps/web/public/updates/`, committed; served by the website              |
+| `.dmg` and the update archive (`.app.tar.gz`)  | Cloudflare R2 bucket `snip-releases`, at `downloads.snip.rojinsharma.com` |
+
+`latest.json` in git gives a history of releases, and rolling back is reverting one commit.
+Binaries stay out of git. R2 has no egress fees.
+
+**Trust:** every update is notarized like the `.dmg`, and the update archive is also signed
+with a separate updater key (Ed25519, kept in `~/.tauri/`, password in `.env`). The app
+holds the public half and refuses any archive not signed with it, so a compromised download
+host cannot push code. The updater key must be backed up: losing it means installed copies
+can no longer be updated automatically.
+
+**What survives an update:** the Screen Recording grant (same identifier and signing team),
+and settings and the access key (in Application Support, outside the app).
+
+**Releasing:** `npm run release:desktop` builds, signs and notarizes; `npm run
+publish:desktop` uploads to R2 and writes `latest.json`; committing and pushing
+`latest.json` deploys it, and installed copies update within a day.
+
+**Not yet:** Intel Macs (builds are Apple silicon only; a universal build doubles build time
+and is added if testers need it), and release notes shown inside the app.
