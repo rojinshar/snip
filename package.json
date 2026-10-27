@@ -25,6 +25,7 @@
     "dev:web": "npm run dev --workspace @snip/web",
     "dev:desktop": "npm run dev --workspace @snip/desktop",
     "build:desktop": "npm run build --workspace @snip/desktop",
+    "reset:desktop-permission": "npm run reset-permission --workspace @snip/desktop",
     "dev:api": "npm run dev --workspace @snip/api"
   },
   "devDependencies": {

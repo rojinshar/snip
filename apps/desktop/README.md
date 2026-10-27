@@ -58,8 +58,9 @@ incomplete and macOS can refuse to open it from Finder. Because the signature is
 - **Screen Recording:** the first snip asks for permission. Turn on Snip under **Privacy &
   Security → Screen Recording**, then choose **Restart Snip** from the ∫ menu. macOS only
   applies the grant after a relaunch. Each rebuild changes the ad-hoc signature, so after
-  installing a new build, reset the old grant with
-  `tccutil reset ScreenCapture io.github.rojinshar.snip` and grant it again. To avoid this,
+  installing a new build, run `npm run reset:desktop-permission` (quits Snip, runs
+  `tccutil reset ScreenCapture io.github.rojinshar.snip`, relaunches) and grant it again. To
+  avoid this,
   sign with a stable local certificate (below).
 
 ### Keep the Screen Recording grant across rebuilds
