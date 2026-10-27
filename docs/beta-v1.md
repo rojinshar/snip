@@ -54,9 +54,15 @@ break the app's API, and the Gemini key is never in the website's environment. B
 the same Workers plan and the Neon database, and can later sit under one domain (for
 example `snip.app` and `api.snip.app`).
 
-**Start on the free plan.** It allows 10 ms of CPU per request; waiting on Gemini does not
-count. Our CPU work (reading the image, the KaTeX check, JSON) is small, so B1 measures it.
-Move to Workers Paid ($5/month, 30 s of CPU per request) only if requests exceed the limit.
+**Start on the free plan.** Its documented limit is 10 ms of CPU per request; waiting on
+Gemini does not count. Measured in B1: 7–8 ms for a typical equation, 27 ms for a 1 MB
+capture, and 78 ms for the first request after a deploy. Cloudflare enforces the limit
+leniently (the website averages about 175 ms per request on the same plan without errors),
+so stay on the free plan and move to Workers Paid ($5/month, 30 s per request) only if
+Workers Logs show requests exceeding the CPU limit.
+
+**URL:** `https://api.snip.rojinsharma.com` (custom domain), with
+`snip-api.sharmarojin2022.workers.dev` as a fallback.
 
 ## 4. Access keys instead of accounts
 
