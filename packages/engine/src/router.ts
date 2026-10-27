@@ -5,9 +5,9 @@ import type {
   OcrUsage,
   RecognizeOptions,
 } from './engines/types.ts';
-import { type ValidationResult, validateLatex } from './latex/validate.ts';
+import { type ValidationResult, validateOutput } from './latex/validate.ts';
 
-export type AttemptOutcome = 'accepted' | 'low-confidence' | 'invalid' | 'error';
+export type AttemptOutcome = 'accepted' | 'low-confidence' | 'invalid' | 'empty' | 'error';
 
 export interface ConfidenceGate {
   readonly metric: keyof OcrConfidence;
@@ -63,8 +63,9 @@ export interface OcrRouterOptions {
 /**
  * Tries steps in order and returns the first output that renders and passes the step's
  * confidence gate, so the user never receives LaTeX that does not render. Engine errors,
- * invalid output and low confidence all fall through to the next step. If every step falls
- * through, the most recent valid low-confidence output is returned as degraded.
+ * invalid output and low confidence all fall through to the next step; empty output ("no
+ * math here") ends the attempt. If every step falls through, the most recent valid
+ * low-confidence output is returned as degraded.
  */
 export class OcrRouter {
   private readonly steps: readonly RouterStep[];
@@ -74,7 +75,7 @@ export class OcrRouter {
   constructor(steps: readonly RouterStep[], options: OcrRouterOptions = {}) {
     if (steps.length === 0) throw new Error('OcrRouter requires at least one step');
     this.steps = steps;
-    this.validate = options.validate ?? validateLatex;
+    this.validate = options.validate ?? validateOutput;
     this.now = options.now ?? (() => performance.now());
   }
 
@@ -93,6 +94,17 @@ export class OcrRouter {
       const attemptStartedAt = this.now();
       try {
         const output = await engine.recognize(image, options);
+        if (output.latex.trim() === '') {
+          // The prompt asks for empty output when there is no math. That is an answer, not
+          // a failure, so a slower engine is not asked again.
+          attempts.push({
+            engineId: engine.id,
+            outcome: 'empty',
+            latencyMs: this.now() - attemptStartedAt,
+            ...(output.usage ? { usage: output.usage } : {}),
+          });
+          break;
+        }
         const validation = this.validate(output.latex);
         const attempt = {
           engineId: engine.id,

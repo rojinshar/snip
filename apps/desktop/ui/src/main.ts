@@ -28,6 +28,7 @@ const keyRemove = byId('key-remove', HTMLButtonElement);
 const keyUsage = byId('key-usage', HTMLParagraphElement);
 const keySave = byId('key-save', HTMLButtonElement);
 const version = byId('version', HTMLParagraphElement);
+const openAtLogin = byId('open-at-login', HTMLInputElement);
 
 let settings: Settings | undefined;
 let recording = false;
@@ -83,6 +84,17 @@ async function onKeyRemove(): Promise<void> {
     renderAccess(NO_KEY);
     status.textContent = '';
   } catch (error) {
+    showError(error);
+  }
+}
+
+async function onOpenAtLoginChange(): Promise<void> {
+  const wanted = openAtLogin.checked;
+  try {
+    openAtLogin.checked = await invoke<boolean>('set_open_at_login', { enabled: wanted });
+    status.textContent = '';
+  } catch (error) {
+    openAtLogin.checked = !wanted;
     showError(error);
   }
 }
@@ -146,10 +158,14 @@ for (const input of delimiterInputs) {
 }
 
 keyForm.addEventListener('submit', (event) => void onKeySubmit(event));
+openAtLogin.addEventListener('change', () => void onOpenAtLoginChange());
 keyRemove.addEventListener('click', () => void onKeyRemove());
 
 invoke<Settings>('get_settings').then(render, showError);
 invoke<AccessStatus>('get_access_status').then(renderAccess, showError);
+invoke<boolean>('get_open_at_login').then((enabled) => {
+  openAtLogin.checked = enabled;
+}, showError);
 invoke<string>('get_version').then((v) => {
   version.textContent = `Snip ${v}`;
 }, showError);

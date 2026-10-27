@@ -231,3 +231,19 @@ publish:desktop` uploads to R2 and writes `latest.json`; committing and pushing
 
 **Not yet:** Intel Macs (builds are Apple silicon only; a universal build doubles build time
 and is added if testers need it), and release notes shown inside the app.
+
+## 14. Before invites: release 0.6.0
+
+| Change                                                                               | Why                                                                                                                                                                                              |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Empty output from Flash-Lite ends recognition as `no_math_found`                     | It means "no math here"; asking 3.8 Flash too made those snips take 4–5 s instead of ~1 s                                                                                                        |
+| Snips are either `math` or `text` (prose with `$…$` math), returned as `kind`        | A sentence with inline math failed the whole-string KaTeX check, fell back to a slower model that wrapped everything in `\text{}`, or passed as one giant formula and got wrapped in `$…$` again |
+| `text` snips: each math segment must render; pasted as-is                            | The app wraps only `math` snips in the user's delimiters                                                                                                                                         |
+| Prompt: math only → bare LaTeX; prose with math → plain text with `$…$` / `$$…$$`    | Makes the model's choice explicit and consistent                                                                                                                                                 |
+| Open at login (macOS login items, `SMAppService`), on by default, toggle in Settings | Snip did not start after a reboot                                                                                                                                                                |
+| Update checks every 6 hours and soon after the Mac wakes                             | Laptops sleep for days; a daily check from launch time was too slow                                                                                                                              |
+
+Measured before the change (4 rendered test images, production chain): a prose sentence and a
+theorem statement both fell back to 3.8 Flash (3.6–4.9 s) and returned `\text{}`-wrapped
+output; a paragraph passed as one formula. Old apps ignore `kind` and keep wrapping, so they
+need the update.

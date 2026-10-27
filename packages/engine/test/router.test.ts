@@ -55,6 +55,24 @@ describe('OcrRouter', () => {
     expect(result.attempts[1]?.detail).toBe('timeout');
   });
 
+  it('stops on empty output instead of asking the next engine', async () => {
+    const router = new OcrRouter(steps(engine('lite', ''), engine('flash', 'x^2')));
+    const result = await router.recognize(image);
+
+    expect(result.status).toBe('failed');
+    expect(result.attempts.map((a) => [a.engineId, a.outcome])).toEqual([['lite', 'empty']]);
+  });
+
+  it('accepts text with math segments and escalates text whose math is broken', async () => {
+    const good = new OcrRouter(steps(engine('lite', 'Roots are $x = 1$ and $x = 2$.')));
+    expect(await good.recognize(image)).toMatchObject({ status: 'ok', engineId: 'lite' });
+
+    const broken = new OcrRouter(
+      steps(engine('lite', 'Roots are $\\frac{1$ and more.'), engine('flash', 'x = 1')),
+    );
+    expect(await broken.recognize(image)).toMatchObject({ status: 'ok', engineId: 'flash' });
+  });
+
   it('records how many retries an attempt took', async () => {
     const router = new OcrRouter(steps(engine('lite', 'x^2', { retries: 1 })));
     const result = await router.recognize(image);
@@ -74,7 +92,9 @@ describe('OcrRouter', () => {
   });
 
   it('fails when no engine produces valid LaTeX', async () => {
-    const router = new OcrRouter(steps(engine('lite', ''), engine('flash', new Error('down'))));
+    const router = new OcrRouter(
+      steps(engine('lite', '\\frac{a'), engine('flash', new Error('down'))),
+    );
     const result = await router.recognize(image);
     expect(result.status).toBe('failed');
     expect(result.attempts).toHaveLength(2);

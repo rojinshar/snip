@@ -1,11 +1,11 @@
 {
-  "version": "0.5.5",
-  "notes": "Updates install when you choose Restart to Update, so notifications keep working.",
-  "pub_date": "2026-10-27T20:14:50.142Z",
+  "version": "0.6.0",
+  "notes": "Sentences with math paste cleanly, faster no-equation results, and Snip opens at login.",
+  "pub_date": "2026-10-27T20:32:35.005Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVScGlhYTAyQjhQdmxGdUUxVTZMTHZuN2tmVE16ZzVpMjYyb0ZLa2lzRGFGcE5RTHZFWnNBYnAwOCt6U3VFSnZhblByZ3Z1LzlHTmV5V3hndDFMVE9WRGNEM0tteExFbkE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzMTMxOTk3CWZpbGU6U25pcC5hcHAudGFyLmd6CXZlcnNpb246MC41LjUKYlg2V2Jra2RmRFMwd1JEM3hJUG9rb3poN1VSLzUzeFI0TENNbUVSM1RtdEZVdEg5YXZqUFd2ZVkvT3lmQVRKd1piVXBQT1NiTnhQOXFWY3YrSGlxQ2c9PQo=",
-      "url": "https://downloads.snip.rojinsharma.com/desktop/0.5.5/Snip_0.5.5_aarch64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVScGlhYTAyQjhQdnZKMmJkbS9yc3JwQkhlRmFtY0hNMmZQZGQ1R3B4bkdrN2dLMlNRU0FGZ2EveWRFaTVYSG9nbnNGSGRnQlRxZEcyQzhlMEFYLzdvWjVRYmxFd1BCT1FJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzMTMzMDkzCWZpbGU6U25pcC5hcHAudGFyLmd6CXZlcnNpb246MC42LjAKaUs5RUN1M0tPZHZJWmFhNW5rSjQzOWdGV1NkaVdqTnJNZmNTcU5RaFNXenJxazREdlFsQU1pWVZ3UHd6cnYySTVJalZCam9vMmhUWVN6cURydGJXQ1E9PQo=",
+      "url": "https://downloads.snip.rojinsharma.com/desktop/0.6.0/Snip_0.6.0_aarch64.app.tar.gz"
     }
   }
 }

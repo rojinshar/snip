@@ -1,5 +1,5 @@
 import { OcrRouter, type OcrEngine } from '@snip/engine';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createRouterRecognizer } from '../src/recognize.ts';
 import { PNG } from './helpers.ts';
@@ -58,14 +58,34 @@ describe('createRouterRecognizer', () => {
     ]);
   });
 
+  it('tells math from text with math in it', async () => {
+    const math = await recognizerFor(answers('lite', 'x^2 + 1')).recognize(image);
+    expect(math).toMatchObject({ ok: true, kind: 'math' });
+    const text = await recognizerFor(
+      answers('lite', 'The roots are $x = 1$ and $x = 2$.'),
+    ).recognize(image);
+    expect(text).toMatchObject({ ok: true, kind: 'text' });
+  });
+
   it('reports no_math_found when every engine answered but none rendered', async () => {
     const result = await recognizerFor(answers('lite', ''), answers('flash', '')).recognize(image);
     expect(result).toMatchObject({ ok: false, error: 'no_math_found' });
   });
 
+  it('answers no_math_found from the first empty output, without asking the next engine', async () => {
+    const flash = vi.fn<OcrEngine['recognize']>(() => Promise.resolve({ latex: 'x' }));
+    const result = await recognizerFor(answers('lite', ''), {
+      id: 'flash',
+      recognize: flash,
+    }).recognize(image);
+    expect(result).toMatchObject({ ok: false, error: 'no_math_found' });
+    expect(result.attempts.map((a) => a.outcome)).toEqual(['empty']);
+    expect(flash).not.toHaveBeenCalled();
+  });
+
   it('reports upstream_failed when any engine errored', async () => {
     const result = await recognizerFor(
-      answers('lite', ''),
+      answers('lite', '\\frac{a'),
       fails('flash', '503 overloaded'),
     ).recognize(image);
     expect(result).toMatchObject({ ok: false, error: 'upstream_failed' });

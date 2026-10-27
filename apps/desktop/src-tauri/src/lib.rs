@@ -6,6 +6,7 @@ mod api;
 mod capture;
 mod format;
 mod image_prep;
+mod login_item;
 mod metrics;
 mod permissions;
 mod settings;
@@ -19,7 +20,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use api::{ApiClient, ApiError};
 use capture::{capture_region, CaptureOutcome};
-use format::{month_day, wrap};
+use format::{clipboard_text, month_day};
 use metrics::SnipTimings;
 use settings_window::SettingsState;
 use tauri::image::Image;
@@ -103,6 +104,7 @@ pub fn run() {
             app.manage(SettingsState::new(settings_path, current, snip_item));
             app.manage(updates::UpdateState::new(updates_item));
             updates::start_background_checks(app.handle());
+            settings_window::set_up_open_at_login(app.handle());
             if settings_window::register_current_hotkey(app.handle()).is_err() {
                 notify(
                     app.handle(),
@@ -123,6 +125,8 @@ pub fn run() {
             settings_window::set_access_key,
             settings_window::clear_access_key,
             settings_window::get_version,
+            settings_window::get_open_at_login,
+            settings_window::set_open_at_login,
         ])
         .on_window_event(|window, event| {
             // Closing the window mid-recording must not leave Snip without a hotkey.
@@ -321,7 +325,7 @@ fn recognize_capture(
     timings.engine = Some(recognition.engine.clone());
 
     let delimiters = app.state::<SettingsState>().current().delimiters;
-    let text = wrap(&recognition.latex, delimiters);
+    let text = clipboard_text(&recognition.latex, recognition.kind, delimiters);
     match app.clipboard().write_text(text.clone()) {
         Ok(()) => SnipResult::Copied { text },
         Err(error) => SnipResult::Failed(Failure::Clipboard(error.to_string())),

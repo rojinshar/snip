@@ -201,7 +201,7 @@ export function createApp(deps: AppDeps): Express {
         return;
       }
       res.locals.engine = result.engine;
-      res.json({ latex: result.latex, engine: result.engine, ms });
+      res.json({ latex: result.latex, kind: result.kind, engine: result.engine, ms });
     },
   );
 
