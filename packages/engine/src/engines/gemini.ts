@@ -76,7 +76,7 @@ export class GeminiEngine implements OcrEngine {
 
   async recognize(image: OcrImage, options: RecognizeOptions = {}): Promise<OcrEngineOutput> {
     return withRetry(
-      () => this.call(image, options),
+      async (attempt) => ({ ...(await this.call(image, options)), retries: attempt - 1 }),
       this.config.retryPolicy ?? DEFAULT_RETRY_POLICY,
     );
   }

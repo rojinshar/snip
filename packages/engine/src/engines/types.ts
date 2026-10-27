@@ -25,6 +25,8 @@ export interface OcrEngineOutput {
   readonly usage?: OcrUsage;
   /** Present only for engines that expose token probabilities. */
   readonly confidence?: OcrConfidence;
+  /** Failed calls the engine retried before this output; explains slow attempts. */
+  readonly retries?: number;
 }
 
 export interface RecognizeOptions {

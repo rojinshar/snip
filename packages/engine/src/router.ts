@@ -31,6 +31,7 @@ export interface RouterAttempt {
   readonly latex?: string;
   readonly usage?: OcrUsage;
   readonly confidence?: OcrConfidence;
+  readonly retries?: number;
   /** Validation or engine error message when the attempt was not accepted. */
   readonly detail?: string;
 }
@@ -99,6 +100,7 @@ export class OcrRouter {
           latex: output.latex,
           ...(output.usage ? { usage: output.usage } : {}),
           ...(output.confidence ? { confidence: output.confidence } : {}),
+          ...(output.retries ? { retries: output.retries } : {}),
         };
 
         if (!validation.ok) {
