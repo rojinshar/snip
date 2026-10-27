@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 const UPDATED = 'October 27, 2026';
-const CONTACT_EMAIL = 'sharmarojin2022@gmail.com';
+const CONTACT_EMAIL = 'sharmarojin48@gmail.com';
 const GEMINI_TERMS_URL = 'https://ai.google.dev/gemini-api/terms';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
