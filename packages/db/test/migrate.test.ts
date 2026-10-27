@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { splitStatements } from '../scripts/migrate';
+import { splitStatements } from '../scripts/migrate.ts';
 
 describe('splitStatements', () => {
   it('splits on line-ending semicolons and drops comment lines', () => {

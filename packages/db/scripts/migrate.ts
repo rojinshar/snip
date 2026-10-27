@@ -1,8 +1,9 @@
 /**
- * Applies db/migrations/*.sql in filename order, once each, recording them in
- * schema_migrations. Each file runs in one transaction.
+ * Applies migrations/*.sql in filename order, once each, recording them in
+ * schema_migrations. Each file runs in one transaction. The database is shared by the
+ * website (waitlist) and the API (access keys, snips).
  *
- * Usage: npm run db:migrate --workspace @snip/web   (reads DATABASE_URL from .env.local)
+ * Usage: npm run db:migrate   (reads DATABASE_URL from the environment or the root .env)
  *
  * Statements are split on semicolons at line ends, so keep migrations to plain DDL/DML
  * (no functions or DO blocks with inner semicolons).
@@ -13,8 +14,9 @@ import path from 'node:path';
 
 import { neon } from '@neondatabase/serverless';
 
-const APP_ROOT = path.resolve(import.meta.dirname, '..');
-const MIGRATIONS_DIR = path.join(APP_ROOT, 'db', 'migrations');
+const PACKAGE_ROOT = path.resolve(import.meta.dirname, '..');
+const REPO_ROOT = path.resolve(PACKAGE_ROOT, '../..');
+const MIGRATIONS_DIR = path.join(PACKAGE_ROOT, 'migrations');
 
 export function splitStatements(sqlText: string): string[] {
   return sqlText
@@ -30,10 +32,10 @@ export function splitStatements(sqlText: string): string[] {
 }
 
 async function main(): Promise<void> {
-  const envFile = path.join(APP_ROOT, '.env.local');
-  if (existsSync(envFile)) process.loadEnvFile(envFile);
+  const envFile = path.join(REPO_ROOT, '.env');
+  if (!process.env.DATABASE_URL && existsSync(envFile)) process.loadEnvFile(envFile);
   const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) throw new Error('DATABASE_URL is not set (apps/web/.env.local)');
+  if (!databaseUrl) throw new Error('DATABASE_URL is not set (environment or root .env)');
 
   const sql = neon(databaseUrl);
   await sql`

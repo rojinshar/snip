@@ -10,8 +10,7 @@
     "start": "next start --port 3100",
     "typecheck": "tsc --noEmit",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "db:migrate": "tsx scripts/migrate.ts"
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "devDependencies": {
     "@opennextjs/cloudflare": "^1.20.13",
