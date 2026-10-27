@@ -1,6 +1,6 @@
 {
   "name": "@snip/desktop",
-  "version": "0.5.5",
+  "version": "0.6.0",
   "private": true,
   "description": "Snip macOS menu-bar app (Tauri 2).",
   "type": "module",

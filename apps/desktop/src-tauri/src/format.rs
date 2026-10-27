@@ -2,6 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::api::SnipKind;
+
 /// Delimiters wrapped around the LaTeX (docs/desktop-v0.md §6), chosen in settings.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -20,6 +22,14 @@ pub fn wrap(latex: &str, delimiters: Delimiters) -> String {
         Delimiters::DisplayBracket => format!("\\[{latex}\\]"),
         Delimiters::DisplayDollar => format!("$${latex}$$"),
         Delimiters::None => latex.to_string(),
+    }
+}
+
+/// What goes on the clipboard: math in the user's delimiters, text with math as it came.
+pub fn clipboard_text(latex: &str, kind: SnipKind, delimiters: Delimiters) -> String {
+    match kind {
+        SnipKind::Math => wrap(latex, delimiters),
+        SnipKind::Text => latex.trim().to_string(),
     }
 }
 
@@ -89,6 +99,19 @@ mod tests {
     #[test]
     fn default_is_inline_dollar() {
         assert_eq!(Delimiters::default(), Delimiters::InlineDollar);
+    }
+
+    #[test]
+    fn text_with_math_is_pasted_without_extra_delimiters() {
+        let text = "The roots are $x = 1$ and $x = 2$.";
+        assert_eq!(
+            clipboard_text(text, SnipKind::Text, Delimiters::InlineDollar),
+            text
+        );
+        assert_eq!(
+            clipboard_text("x^2", SnipKind::Math, Delimiters::DisplayBracket),
+            "\\[x^2\\]"
+        );
     }
 
     #[test]

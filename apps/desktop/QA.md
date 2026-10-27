@@ -90,3 +90,17 @@ Release builds use the hosted API and need an access key (see Beta below).
       Esc shows nothing. This works while sharing the screen, when notifications are muted.
 - [ ] Set your quota to your current usage (`npm run keys -- quota --id <id> --quota <used>`)
       and snip: "Monthly snips used up … reset on Nov 1". Restore the quota afterwards.
+
+## 0.6.0: text with math, no-math speed, open at login, update cadence
+
+- [ ] Snip a sentence with inline math (a textbook line): it pastes as plain text with each
+      formula in `$…$`, whatever the delimiter setting, with no extra `$` around it all.
+- [ ] Snip a pure formula: it still uses the chosen delimiter setting.
+- [ ] Snip something with no math (a photo, a plain heading): "No equation found" in about
+      1–2 seconds, not 4–5.
+- [ ] After the first launch of a release build, Snip is listed in System Settings → General
+      → Login Items, and **Open Snip at login** is checked in Settings.
+- [ ] Uncheck it: Snip leaves Login Items. Restart the Mac: Snip does not start. Check it
+      again: it returns, and Snip starts after a restart.
+- [ ] Turn Snip off in System Settings → Login Items, then relaunch Snip: it stays off (Snip
+      only adds itself on the very first run).

@@ -17,9 +17,22 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(45);
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Recognition {
     pub latex: String,
+    /// Missing from servers older than 0.6.0, which only returned math.
+    #[serde(default)]
+    pub kind: SnipKind,
     pub engine: String,
     /// Server-side recognition time.
     pub ms: u64,
+}
+
+/// `Math` is bare LaTeX, wrapped in the user's delimiters. `Text` is prose with `$…$` math,
+/// pasted as is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SnipKind {
+    #[default]
+    Math,
+    Text,
 }
 
 #[derive(Debug, PartialEq)]
@@ -176,10 +189,17 @@ mod tests {
             parse_response(200, body),
             Ok(Recognition {
                 latex: "x^2".into(),
+                kind: SnipKind::Math,
                 engine: "gemini-3.5-flash-lite".into(),
                 ms: 1180
             })
         );
+    }
+
+    #[test]
+    fn reads_the_kind_of_snip() {
+        let body = r#"{"latex":"Roots are $x=1$.","kind":"text","engine":"lite","ms":900}"#;
+        assert_eq!(parse_response(200, body).unwrap().kind, SnipKind::Text);
     }
 
     #[test]

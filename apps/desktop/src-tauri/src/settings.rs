@@ -22,6 +22,9 @@ pub const DEFAULT_HOTKEY: &str = "Cmd+Shift+Digit2";
 pub struct Settings {
     pub hotkey: String,
     pub delimiters: Delimiters,
+    /// Set once Snip has added itself to login items on first run. After that the login
+    /// item is the user's to change (here or in System Settings), so it is never re-added.
+    pub open_at_login_set_up: bool,
 }
 
 impl Default for Settings {
@@ -29,6 +32,7 @@ impl Default for Settings {
         Self {
             hotkey: DEFAULT_HOTKEY.into(),
             delimiters: Delimiters::default(),
+            open_at_login_set_up: false,
         }
     }
 }
@@ -163,6 +167,7 @@ mod tests {
         let settings = Settings {
             hotkey: "Ctrl+Alt+KeyL".into(),
             delimiters: Delimiters::DisplayBracket,
+            open_at_login_set_up: true,
         };
         save(&path, &settings).unwrap();
         assert_eq!(load(&path), settings);
@@ -177,7 +182,11 @@ mod tests {
             serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
         assert_eq!(
             json,
-            serde_json::json!({ "hotkey": "Cmd+Shift+Digit2", "delimiters": "inlineDollar" })
+            serde_json::json!({
+                "hotkey": "Cmd+Shift+Digit2",
+                "delimiters": "inlineDollar",
+                "openAtLoginSetUp": false
+            })
         );
     }
 
@@ -197,6 +206,7 @@ mod tests {
             Settings {
                 hotkey: DEFAULT_HOTKEY.into(),
                 delimiters: Delimiters::None,
+                ..Settings::default()
             }
         );
     }
@@ -214,6 +224,7 @@ mod tests {
             Settings {
                 hotkey: DEFAULT_HOTKEY.into(),
                 delimiters: Delimiters::DisplayDollar,
+                ..Settings::default()
             }
         );
     }

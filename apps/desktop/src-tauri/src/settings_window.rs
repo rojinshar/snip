@@ -12,6 +12,7 @@ use serde::Serialize;
 use crate::access_key;
 use crate::api::{ApiClient, ApiError, Usage};
 use crate::format::{usage_line, Delimiters};
+use crate::login_item;
 use crate::settings::{self, parse_hotkey, Settings};
 
 pub const WINDOW_LABEL: &str = "settings";
@@ -49,7 +50,7 @@ pub fn open(app: &AppHandle) {
     }
     let built = WebviewWindowBuilder::new(app, WINDOW_LABEL, WebviewUrl::default())
         .title("Snip Settings")
-        .inner_size(440.0, 490.0)
+        .inner_size(440.0, 560.0)
         .resizable(false)
         .maximizable(false)
         .minimizable(false)
@@ -226,6 +227,42 @@ fn key_problem(error: &ApiError) -> String {
         _ => "Couldn't check the key right now. Try again in a moment.",
     }
     .into()
+}
+
+/// Adds Snip to login items the first time a release build runs. Debug builds never touch
+/// login items, so development doesn't register a build folder.
+pub fn set_up_open_at_login(app: &AppHandle) {
+    let state = app.state::<SettingsState>();
+    let mut current = state.lock();
+    if current.open_at_login_set_up || cfg!(debug_assertions) {
+        return;
+    }
+    if let Err(error) = login_item::set_enabled(true) {
+        log::warn!("could not add Snip to login items: {error}");
+    }
+    let next = Settings {
+        open_at_login_set_up: true,
+        ..current.clone()
+    };
+    match settings::save(&state.path, &next) {
+        Ok(()) => *current = next,
+        Err(error) => log::warn!("could not save settings: {error}"),
+    }
+}
+
+/// Read from macOS each time, since the user can change it in System Settings.
+#[tauri::command]
+pub fn get_open_at_login() -> bool {
+    login_item::is_enabled()
+}
+
+#[tauri::command]
+pub fn set_open_at_login(enabled: bool) -> Result<bool, String> {
+    login_item::set_enabled(enabled).map_err(|error| {
+        log::warn!("could not change login items: {error}");
+        "Couldn't change Open at login. Try in System Settings → General → Login Items.".to_string()
+    })?;
+    Ok(login_item::is_enabled())
 }
 
 /// Shown at the bottom of Settings, so a tester can say which version they run.

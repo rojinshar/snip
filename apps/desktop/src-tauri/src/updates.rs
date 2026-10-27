@@ -8,14 +8,17 @@
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, MutexGuard, PoisonError};
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use tauri::menu::MenuItem;
 use tauri::{AppHandle, Manager, Wry};
 use tauri_plugin_updater::{Update, UpdaterExt};
 
 const FIRST_CHECK_DELAY: Duration = Duration::from_secs(30);
-const CHECK_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
+const CHECK_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60);
+/// How often the background thread looks at the clock. Short enough that a check that came
+/// due while the Mac slept runs soon after it wakes.
+const TICK: Duration = Duration::from_secs(10 * 60);
 
 pub const MENU_ID: &str = "updates";
 pub const CHECK_LABEL: &str = "Check for Updates…";
@@ -60,8 +63,10 @@ pub fn ready_title(version: &str) -> String {
     format!("Snip {version} is ready to install")
 }
 
-/// Checks shortly after launch and then daily. Debug builds only check on request, so
-/// development never installs a release over itself.
+/// Checks shortly after launch, then every 6 hours. The interval is measured on the wall
+/// clock, which keeps running while the Mac sleeps, so a check that came due during sleep
+/// runs within one tick of waking. Debug builds only check on request, so development never
+/// installs a release over itself.
 pub fn start_background_checks(app: &AppHandle) {
     if cfg!(debug_assertions) {
         return;
@@ -69,11 +74,24 @@ pub fn start_background_checks(app: &AppHandle) {
     let app = app.clone();
     std::thread::spawn(move || {
         std::thread::sleep(FIRST_CHECK_DELAY);
+        let mut last_check = SystemTime::now();
+        check(&app, false);
         loop {
-            check(&app, false);
-            std::thread::sleep(CHECK_INTERVAL);
+            std::thread::sleep(TICK);
+            let now = SystemTime::now();
+            if check_due(now, last_check) {
+                last_check = now;
+                check(&app, false);
+            }
         }
     });
+}
+
+/// True once `CHECK_INTERVAL` has passed on the wall clock. A clock moved backwards also
+/// counts as due, so a wrong clock can't stop updates.
+fn check_due(now: SystemTime, last_check: SystemTime) -> bool {
+    now.duration_since(last_check)
+        .map_or(true, |elapsed| elapsed >= CHECK_INTERVAL)
 }
 
 /// The menu item: install the downloaded update and restart into it, or check now.
@@ -182,6 +200,19 @@ mod tests {
     fn menu_label_offers_a_check_until_an_update_is_downloaded() {
         assert_eq!(menu_label(None), "Check for Updates…");
         assert_eq!(menu_label(Some("0.5.2")), "Restart to Update to 0.5.2");
+    }
+
+    #[test]
+    fn checks_come_due_after_six_hours_of_wall_clock_time() {
+        let last = SystemTime::UNIX_EPOCH + Duration::from_secs(1_000_000);
+        let hours = |h: u64| last + Duration::from_secs(h * 3600);
+        assert!(!check_due(hours(1), last));
+        assert!(!check_due(last + Duration::from_secs(6 * 3600 - 1), last));
+        assert!(check_due(hours(6), last));
+        // Woke after a weekend asleep: due straight away.
+        assert!(check_due(hours(60), last));
+        // The clock went backwards.
+        assert!(check_due(last - Duration::from_secs(60), last));
     }
 
     #[test]
