@@ -13,6 +13,7 @@
           <div>
             <h2 id="key-label">Access key</h2>
             <p id="key-state" class="hint">Not set</p>
+            <p id="key-usage" class="hint usage" hidden></p>
           </div>
           <button id="key-remove" type="button" class="link" hidden>Remove</button>
         </div>
@@ -25,7 +26,7 @@
             spellcheck="false"
             aria-labelledby="key-label"
           />
-          <button type="submit">Save</button>
+          <button id="key-save" type="submit">Save</button>
         </form>
       </section>
 

@@ -28,6 +28,8 @@ pub enum ApiError {
     Server {
         status: u16,
         code: String,
+        /// When a `quota_exceeded` quota resets (ISO 8601), if the server said.
+        resets_at: Option<String>,
     },
     /// Could not connect (server down, wrong URL, offline).
     Unreachable(String),
@@ -39,7 +41,7 @@ pub enum ApiError {
 impl fmt::Display for ApiError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Server { status, code } => write!(f, "server returned {status} {code}"),
+            Self::Server { status, code, .. } => write!(f, "server returned {status} {code}"),
             Self::Unreachable(detail) => write!(f, "could not reach the API: {detail}"),
             Self::Timeout => write!(f, "the API did not answer in time"),
             Self::BadResponse(detail) => write!(f, "unexpected API response: {detail}"),
@@ -49,8 +51,18 @@ impl fmt::Display for ApiError {
 
 impl std::error::Error for ApiError {}
 
+/// `GET /v1/me`: the key's quota and usage. All fields are null for the local API, which has
+/// no keys or quotas.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Usage {
+    pub quota: Option<u64>,
+    pub used: Option<u64>,
+    pub resets_at: Option<String>,
+}
+
 pub struct ApiClient {
-    endpoint: String,
+    base_url: String,
     agent: ureq::Agent,
 }
 
@@ -63,7 +75,7 @@ impl ApiClient {
             .build()
             .into();
         Self {
-            endpoint: format!("{}/v1/recognize", base_url.trim_end_matches('/')),
+            base_url: base_url.trim_end_matches('/').to_string(),
             agent,
         }
     }
@@ -84,31 +96,59 @@ impl ApiClient {
     pub fn recognize(&self, png: &[u8], access_key: Option<&str>) -> Result<Recognition, ApiError> {
         let mut request = self
             .agent
-            .post(&self.endpoint)
+            .post(&self.endpoint("recognize"))
             .header("Content-Type", "image/png");
         if let Some(key) = access_key {
             request = request.header("Authorization", &format!("Bearer {key}"));
         }
-        let mut response = request.send(png).map_err(|error| match error {
-            ureq::Error::Timeout(_) => ApiError::Timeout,
-            other => ApiError::Unreachable(other.to_string()),
-        })?;
-        let status = response.status().as_u16();
-        let body = response
-            .body_mut()
-            .read_to_string()
-            .map_err(|error| ApiError::BadResponse(error.to_string()))?;
+        let (status, body) = read(request.send(png))?;
         parse_response(status, &body)
+    }
+
+    /// Checks a key and reads its usage. Cheap: it never calls the recognizer.
+    pub fn me(&self, access_key: Option<&str>) -> Result<Usage, ApiError> {
+        let mut request = self.agent.get(&self.endpoint("me"));
+        if let Some(key) = access_key {
+            request = request.header("Authorization", &format!("Bearer {key}"));
+        }
+        let (status, body) = read(request.call())?;
+        parse_json(status, &body)
+    }
+
+    fn endpoint(&self, name: &str) -> String {
+        format!("{}/v1/{name}", self.base_url)
     }
 }
 
-#[derive(Deserialize)]
-struct ErrorBody {
-    error: String,
+fn read(
+    response: Result<ureq::http::Response<ureq::Body>, ureq::Error>,
+) -> Result<(u16, String), ApiError> {
+    let mut response = response.map_err(|error| match error {
+        ureq::Error::Timeout(_) => ApiError::Timeout,
+        other => ApiError::Unreachable(other.to_string()),
+    })?;
+    let status = response.status().as_u16();
+    let body = response
+        .body_mut()
+        .read_to_string()
+        .map_err(|error| ApiError::BadResponse(error.to_string()))?;
+    Ok((status, body))
 }
 
-/// Interprets a response per the API contract. Separate from I/O so it can be unit-tested.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ErrorBody {
+    error: String,
+    resets_at: Option<String>,
+}
+
+/// Interprets a `/v1/recognize` response per the API contract. Separate from I/O so it can
+/// be unit-tested.
 pub fn parse_response(status: u16, body: &str) -> Result<Recognition, ApiError> {
+    parse_json(status, body)
+}
+
+fn parse_json<T: serde::de::DeserializeOwned>(status: u16, body: &str) -> Result<T, ApiError> {
     if status == 200 {
         return serde_json::from_str(body)
             .map_err(|error| ApiError::BadResponse(error.to_string()));
@@ -117,6 +157,7 @@ pub fn parse_response(status: u16, body: &str) -> Result<Recognition, ApiError> 
         Ok(error) => Err(ApiError::Server {
             status,
             code: error.error,
+            resets_at: error.resets_at,
         }),
         Err(_) => Err(ApiError::BadResponse(format!(
             "status {status} without an error code"
@@ -148,7 +189,44 @@ mod tests {
             parse_response(422, body),
             Err(ApiError::Server {
                 status: 422,
-                code: "no_math_found".into()
+                code: "no_math_found".into(),
+                resets_at: None,
+            })
+        );
+    }
+
+    #[test]
+    fn keeps_the_reset_time_of_a_used_up_quota() {
+        let body =
+            r#"{"error":"quota_exceeded","message":"…","resetsAt":"2026-11-01T00:00:00.000Z"}"#;
+        assert_eq!(
+            parse_response(429, body),
+            Err(ApiError::Server {
+                status: 429,
+                code: "quota_exceeded".into(),
+                resets_at: Some("2026-11-01T00:00:00.000Z".into()),
+            })
+        );
+    }
+
+    #[test]
+    fn parses_usage_for_hosted_and_local_apis() {
+        let hosted = r#"{"quota":200,"used":37,"resetsAt":"2026-11-01T00:00:00.000Z"}"#;
+        assert_eq!(
+            parse_json::<Usage>(200, hosted),
+            Ok(Usage {
+                quota: Some(200),
+                used: Some(37),
+                resets_at: Some("2026-11-01T00:00:00.000Z".into()),
+            })
+        );
+        let local = r#"{"quota":null,"used":null,"resetsAt":null}"#;
+        assert_eq!(
+            parse_json::<Usage>(200, local),
+            Ok(Usage {
+                quota: None,
+                used: None,
+                resets_at: None,
             })
         );
     }
@@ -198,10 +276,12 @@ mod tests {
     }
 
     #[test]
-    fn builds_the_endpoint_from_the_base_url() {
+    fn builds_endpoints_from_the_base_url() {
+        let client = ApiClient::new("http://127.0.0.1:8790/");
         assert_eq!(
-            ApiClient::new("http://127.0.0.1:8790/").endpoint,
+            client.endpoint("recognize"),
             "http://127.0.0.1:8790/v1/recognize"
         );
+        assert_eq!(client.endpoint("me"), "http://127.0.0.1:8790/v1/me");
     }
 }

@@ -257,6 +257,18 @@ describe('access keys', () => {
     });
   });
 
+  it('answers 500 without recognizing when the key lookup fails', async () => {
+    const { store } = fakeStore();
+    const broken: AccessStore = {
+      ...store,
+      usage: () => Promise.reject(new Error('database unavailable')),
+    };
+    const { app, recognize } = setup({ access: { store: broken } });
+    const res = await postImage(app, PNG).set('authorization', withKey()).expect(500);
+    expect(res.body).toMatchObject({ error: 'internal_error' });
+    expect(recognize).not.toHaveBeenCalled();
+  });
+
   it('still answers when recording the usage fails, and logs why', async () => {
     const { store } = fakeStore();
     const failing: AccessStore = {
