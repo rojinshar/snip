@@ -1,6 +1,11 @@
 import { Demo } from '@/components/demo';
 import { WaitlistForm } from '@/components/waitlist-form';
-import { MATHPIX_CHECKED, MATHPIX_FREE_SNIPS } from '@/lib/mathpix';
+import {
+  MATHPIX_CHECKED,
+  MATHPIX_FREE_SNIPS,
+  MATHPIX_FREE_SNIPS_NO_EDU,
+  MATHPIX_PRICING_URL,
+} from '@/lib/mathpix';
 
 const comparison = [
   {
@@ -61,7 +66,7 @@ const faqs = [
   },
   {
     q: 'How is this different from Mathpix?',
-    a: `Mathpix is excellent, but its free plan stops at ${MATHPIX_FREE_SNIPS} snips a month, which a single problem set can use up. Snip gives you 200 free.`,
+    a: `Mathpix is excellent, but its free plan stops at ${MATHPIX_FREE_SNIPS} snips a month with a .edu email (${MATHPIX_FREE_SNIPS_NO_EDU} without), which a single problem set can use up. Snip gives you 200 free.`,
   },
   {
     q: 'Does it handle handwriting and long multi-line equations?',
@@ -96,8 +101,9 @@ export default function Home() {
           Screenshot any equation. Paste LaTeX.
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-600">
-          200 free snips a month. Mathpix&apos;s free plan stops at {MATHPIX_FREE_SNIPS}. One
-          hotkey, and compile-checked LaTeX lands on your clipboard in about 2 seconds.
+          200 free snips a month. Mathpix&apos;s free plan stops at {MATHPIX_FREE_SNIPS}, even with
+          a .edu email. One hotkey, and compile-checked LaTeX lands on your clipboard in about 2
+          seconds.
         </p>
         <div className="mt-8 flex justify-center">
           <WaitlistForm id="hero" />
@@ -128,7 +134,7 @@ export default function Home() {
                     Snip
                   </th>
                   <th scope="col" className="p-4 font-semibold">
-                    Mathpix (free plan)
+                    Mathpix (free, .edu)
                   </th>
                   <th scope="col" className="p-4 font-semibold">
                     ChatGPT / chat assistants
@@ -150,7 +156,12 @@ export default function Home() {
             </table>
           </div>
           <p className="mt-3 text-center text-xs text-slate-500">
-            Mathpix figures from mathpix.com/pricing, checked {MATHPIX_CHECKED}.
+            Mathpix: {MATHPIX_FREE_SNIPS} with a .edu email; {MATHPIX_FREE_SNIPS_NO_EDU} without.
+            From{' '}
+            <a href={MATHPIX_PRICING_URL} className="underline hover:text-slate-700">
+              mathpix.com/pricing/snip
+            </a>
+            , checked {MATHPIX_CHECKED}.
           </p>
         </div>
       </section>
@@ -224,6 +235,19 @@ export default function Home() {
             <WaitlistForm id="footer" />
           </div>
         </div>
+      </section>
+
+      <section className="mx-auto max-w-3xl px-6 pt-12 text-center text-slate-600">
+        <p>
+          Built by{' '}
+          <a
+            href="https://rojinsharma.com"
+            className="font-medium text-indigo-600 hover:text-indigo-700"
+          >
+            Rojin
+          </a>
+          , a math and physics student at Vanderbilt, because I was tired of retyping problem sets.
+        </p>
       </section>
 
       <footer className="mx-auto max-w-5xl px-6 py-8 text-center text-sm text-slate-500">
