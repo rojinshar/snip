@@ -104,8 +104,9 @@ which works on Workers. The schema and migrations live in `packages/db`, shared 
 website and the API (`npm run db:migrate`).
 
 **Latency risk:** Neon's free tier suspends after about 5 minutes idle, and waking it
-adds a few hundred ms. If B2 measurements show that, the key check runs alongside the
-Gemini call instead of before it, and the Gemini result is discarded for invalid keys.
+adds a few hundred ms. The key check therefore starts when the request arrives and overlaps
+the image upload; Gemini is called only after it passes. Running it alongside Gemini instead
+was rejected: rejected keys would still spend money, bypassing the spending cap.
 
 ## 6. API contract changes
 
@@ -156,7 +157,7 @@ Each is one branch and one PR-sized change.
 | --- | ---------------------------------------------------------------------------------------- | ------------------------------------- |
 | B1  | API on Workers (Express kept, same tests), deployed on push; one owner key from a secret | Hosting, latency, CPU time            |
 | B2  | Access keys, `snips` table, quota, rate limit, spending cap, `GET /v1/me`, admin scripts | Costs are bounded per key and per day |
-| B3  | App: verify the key on save, usage in Settings, new errors                               | A tester can set up alone             |
+| B3  | App: verify the key on save, usage in Settings, new errors, ✓/! menu-bar mark            | A tester can set up alone             |
 | B4  | Developer ID signing and notarization; beta `.dmg`; QA on a second Mac                   | Installs like a real Mac app          |
 | B5  | Invite 10 waitlist users; collect feedback; review cost and latency                      | People want it                        |
 
