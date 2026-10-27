@@ -8,33 +8,37 @@
   </head>
   <body>
     <main>
-      <section class="row">
+      <section class="panel row">
         <div>
           <h2 id="hotkey-label">Hotkey</h2>
-          <p class="hint">Click, then press the new keys. Esc cancels.</p>
+          <p class="hint">Click, then press new keys.</p>
         </div>
         <button id="hotkey" type="button" class="hotkey" aria-labelledby="hotkey-label"></button>
       </section>
 
-      <fieldset id="delimiters">
-        <legend>Paste as</legend>
-        <label>
+      <section class="panel" role="radiogroup" aria-labelledby="delimiters-label">
+        <h2 id="delimiters-label">Paste as</h2>
+        <label class="option">
           <input type="radio" name="delimiters" value="inlineDollar" />
           <span>Inline <code>$…$</code></span>
+          <small>Inside a sentence</small>
         </label>
-        <label>
+        <label class="option">
           <input type="radio" name="delimiters" value="displayBracket" />
           <span>Display <code>\[…\]</code></span>
+          <small>On its own line, in LaTeX documents</small>
         </label>
-        <label>
+        <label class="option">
           <input type="radio" name="delimiters" value="displayDollar" />
           <span>Display <code>$$…$$</code></span>
+          <small>On its own line, in Markdown and Obsidian</small>
         </label>
-        <label>
+        <label class="option">
           <input type="radio" name="delimiters" value="none" />
           <span>Plain LaTeX</span>
+          <small>No delimiters, for pasting into an existing equation</small>
         </label>
-      </fieldset>
+      </section>
 
       <p id="status" class="status" role="status" aria-live="polite"></p>
     </main>

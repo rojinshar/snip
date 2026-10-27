@@ -43,9 +43,7 @@ main {
   padding: 20px;
 }
 
-.row,
-fieldset {
-  margin: 0;
+.panel {
   padding: 12px 14px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -59,17 +57,14 @@ fieldset {
   gap: 16px;
 }
 
-h2,
-legend {
-  margin: 0;
+h2 {
+  margin: 0 0 6px;
   font-size: 13px;
   font-weight: 600;
 }
 
-legend {
-  float: left;
-  width: 100%;
-  margin-bottom: 6px;
+.row h2 {
+  margin: 0;
 }
 
 .hint {
@@ -97,11 +92,22 @@ legend {
   letter-spacing: normal;
 }
 
-fieldset label {
-  display: flex;
+.option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
   align-items: center;
-  gap: 8px;
-  padding: 3px 0;
+  padding: 4px 0;
+}
+
+.option input {
+  margin: 0;
+}
+
+.option small {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 11px;
 }
 
 code {
