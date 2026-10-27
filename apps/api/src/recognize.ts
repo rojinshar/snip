@@ -5,6 +5,7 @@ import {
   type OutputKind,
   type RouterResult,
   classifyOutput,
+  preserveLineBreaks,
 } from '@snip/engine';
 
 export type RecognizeErrorCode = 'no_math_found' | 'upstream_failed';
@@ -61,11 +62,13 @@ export function toRecognizeResult(result: RouterResult): RecognizeResult {
     ...(a.retries ? { retries: a.retries } : {}),
   }));
   if (result.status === 'ok') {
+    const kind = classifyOutput(result.latex);
     return {
       ok: true,
-      latex: result.latex,
+      // Text keeps its line structure once pasted; math is left exactly as recognized.
+      latex: kind === 'text' ? preserveLineBreaks(result.latex) : result.latex,
       engine: result.engineId,
-      kind: classifyOutput(result.latex),
+      kind,
       attempts,
       costUsd: result.costUsd,
     };

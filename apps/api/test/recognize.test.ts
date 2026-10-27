@@ -67,6 +67,21 @@ describe('createRouterRecognizer', () => {
     expect(text).toMatchObject({ ok: true, kind: 'text' });
   });
 
+  it('keeps each line of a text snip on its own line', async () => {
+    const result = await recognizerFor(
+      answers(
+        'lite',
+        'Rules for logs\nProduct: $\\log(xy) = \\log x + \\log y$\nPower: $\\log x^n = n \\log x$',
+      ),
+    ).recognize(image);
+    expect(result).toMatchObject({
+      ok: true,
+      kind: 'text',
+      latex:
+        'Rules for logs\n\nProduct: $\\log(xy) = \\log x + \\log y$\n\nPower: $\\log x^n = n \\log x$',
+    });
+  });
+
   it('reports no_math_found when every engine answered but none rendered', async () => {
     const result = await recognizerFor(answers('lite', ''), answers('flash', '')).recognize(image);
     expect(result).toMatchObject({ ok: false, error: 'no_math_found' });
