@@ -79,8 +79,8 @@ by hand.
   config directory, readable only by the user (mode 0600) and kept out of `settings.json`.
   Sent as `Authorization: Bearer <key>`. Not the Keychain: ad-hoc signed builds make macOS
   ask for permission on every read. Revisit once builds are Developer ID signed (B4).
-- **Admin:** `npm run keys:create -- --email a@b.c [--quota 200]`, `keys:revoke`,
-  `keys:list` (usage this month per key).
+- **Admin:** `npm run keys -- create --email a@b.c [--quota 200]`, `keys -- list` (usage
+  this month per key), `keys -- quota`, `keys -- revoke`.
 
 ## 5. Quotas, limits and the spending cap
 
@@ -100,8 +100,8 @@ rejected request costs nothing. Two simultaneous requests can both pass the quot
 going one or two snips over is acceptable at this scale.
 
 **Database:** the existing Neon Postgres (the waitlist database), via its HTTP driver,
-which works on Workers. Migrations move from `apps/web/db` to a top-level `db/` shared by
-the website and the API.
+which works on Workers. The schema and migrations live in `packages/db`, shared by the
+website and the API (`npm run db:migrate`).
 
 **Latency risk:** Neon's free tier suspends after about 5 minutes idle, and waking it
 adds a few hundred ms. If B2 measurements show that, the key check runs alongside the
@@ -166,7 +166,7 @@ After B1, the author stops running `npm run dev:api`.
 
 | Risk                                       | Likelihood    | Mitigation                                                   |
 | ------------------------------------------ | ------------- | ------------------------------------------------------------ |
-| A key is shared or leaked                  | Medium        | Quota per key, spending cap, `keys:revoke`                   |
+| A key is shared or leaked                  | Medium        | Quota per key, spending cap, `keys -- revoke`                |
 | Workers CPU time per request is too high   | Low           | Measured in B1; Fly.io is the fallback with no code changes  |
 | Neon wake-up adds latency                  | Medium        | Measured in B2; run the key check alongside Gemini           |
 | Gemini outage or price change              | Low           | Engine is swappable; the spending cap bounds price surprises |
