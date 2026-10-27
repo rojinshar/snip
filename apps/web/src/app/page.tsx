@@ -1,4 +1,5 @@
 import { Demo } from '@/components/demo';
+import { FounderNote } from '@/components/founder-note';
 import { WaitlistForm } from '@/components/waitlist-form';
 import {
   MATHPIX_CHECKED,
@@ -24,6 +25,12 @@ const comparison = [
   // "—" marks Mathpix behaviour we have not verified.
   { label: 'Checked to compile before you paste', snip: 'Yes', mathpix: '—', chat: 'No' },
 ];
+
+const products = [
+  { key: 'snip', name: 'Snip', highlight: true },
+  { key: 'mathpix', name: 'Mathpix (free, .edu)', highlight: false },
+  { key: 'chat', name: 'ChatGPT / chat assistants', highlight: false },
+] as const;
 
 const steps = [
   { title: 'Press your hotkey', body: 'From any app: a PDF, lecture slides, a paper.' },
@@ -101,9 +108,10 @@ export default function Home() {
           Screenshot any equation. Paste LaTeX.
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-600">
-          200 free snips a month. Mathpix&apos;s free plan stops at {MATHPIX_FREE_SNIPS}, even with
-          a .edu email. One hotkey, and compile-checked LaTeX lands on your clipboard in about 2
-          seconds.
+          Mathpix gives students {MATHPIX_FREE_SNIPS} free snips a month. Snip gives you 200.
+        </p>
+        <p className="mx-auto mt-2 max-w-2xl text-slate-500">
+          Same hotkey. Same paste. LaTeX that compiles every time.
         </p>
         <div className="mt-8 flex justify-center">
           <WaitlistForm id="hero" />
@@ -122,8 +130,34 @@ export default function Home() {
           <h2 className="text-center text-3xl font-bold tracking-tight">
             Why not Mathpix or ChatGPT?
           </h2>
-          {/* Scrolls inside its own box on narrow screens, never the page; row labels stay put. */}
-          <div className="mt-12 overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          {/* Phones get one card per product instead, so no column hides off-screen. */}
+          <div className="mt-12 grid gap-4 sm:hidden">
+            {products.map((product) => (
+              <div
+                key={product.name}
+                className={`rounded-xl border bg-white p-5 ${product.highlight ? 'border-indigo-500 ring-2 ring-indigo-100' : 'border-slate-200'}`}
+              >
+                <h3
+                  className={`font-semibold ${product.highlight ? 'text-indigo-700' : 'text-slate-900'}`}
+                >
+                  {product.name}
+                </h3>
+                <dl className="mt-3 divide-y divide-slate-100 text-sm">
+                  {comparison.map((row) => (
+                    <div key={row.label} className="flex justify-between gap-4 py-2">
+                      <dt className="text-slate-500">{row.label}</dt>
+                      <dd
+                        className={`text-right ${product.highlight ? 'font-semibold text-indigo-700' : 'text-slate-700'}`}
+                      >
+                        {row[product.key]}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))}
+          </div>
+          <div className="mt-12 hidden overflow-x-auto rounded-xl border border-slate-200 bg-white sm:block">
             <table className="w-full min-w-[36rem] border-collapse text-left">
               <thead>
                 <tr className="border-b border-slate-200">
@@ -225,6 +259,8 @@ export default function Home() {
         </div>
       </section>
 
+      <FounderNote />
+
       <section id="join" className="border-t border-slate-200 bg-indigo-600">
         <div className="mx-auto flex max-w-3xl flex-col items-center px-6 py-20 text-center text-white">
           <h2 className="text-3xl font-bold tracking-tight">Stop retyping equations.</h2>
@@ -235,19 +271,6 @@ export default function Home() {
             <WaitlistForm id="footer" />
           </div>
         </div>
-      </section>
-
-      <section className="mx-auto max-w-3xl px-6 pt-12 text-center text-slate-600">
-        <p>
-          Built by{' '}
-          <a
-            href="https://rojinsharma.com"
-            className="font-medium text-indigo-600 hover:text-indigo-700"
-          >
-            Rojin
-          </a>
-          , a math and physics student at Vanderbilt, because I was tired of retyping problem sets.
-        </p>
       </section>
 
       <footer className="mx-auto max-w-5xl px-6 py-8 text-center text-sm text-slate-500">
