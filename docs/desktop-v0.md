@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Author:** Rojin Sharma
-- **Last updated:** 2026-10-26
+- **Last updated:** 2026-10-26 (M5 detail added)
 
 ## 1. Goal
 
@@ -66,8 +66,8 @@ benchmarked and tested. The API is a thin HTTP layer over it.
 | Region capture | `/usr/sbin/screencapture -i -x <tmp>.png` | Native crosshair; `-x` mutes the shutter; no file means cancelled |
 | Clipboard      | `tauri-plugin-clipboard-manager`          | Text only                                                         |
 | Notifications  | `tauri-plugin-notification`               | Success and errors                                                |
-| Settings       | `tauri-plugin-store` (JSON in app data)   | Hotkey, delimiters, API URL                                       |
-| UI             | React + Vite + TypeScript                 | Settings window only; the tray menu is native                     |
+| Settings       | `settings.json` in app config, via serde  | Hotkey and delimiters; Rust validates and owns writes (§14)       |
+| UI             | Vite + TypeScript, no framework           | Settings window only; the tray menu is native (§14)               |
 
 **Screen Recording permission.** Without it, macOS captures only the wallpaper and our own
 windows. On first use the app checks with `CGPreflightScreenCaptureAccess`. If access is
@@ -192,3 +192,36 @@ Each milestone is one branch and one PR-sized change, merged when checks pass an
 | Default hotkey                                          | `⌘⇧2`: close to the macOS screenshot keys and changeable in settings                                                                       |
 | Fallback when Flash-Lite's output fails the KaTeX check | Retry once with Gemini 3.8 Flash. Rare in practice (0 of 200 paid-tier outputs failed), so the extra cost and latency only hit those snips |
 | Recent-snip history                                     | Out of v0; moved to later phases                                                                                                           |
+
+## 14. M5: settings window
+
+**Scope:** change the hotkey and the delimiters. The API URL stays an environment variable
+until the API is hosted.
+
+**Opening it.** A **Settings…** (`⌘,`) item in the menu-bar menu opens one small window.
+Opening it again focuses the existing window. Closing it destroys the window; the app keeps
+running in the menu bar.
+
+**Storage.** `settings.json` in the app config directory
+(`~/Library/Application Support/io.github.rojinshar.snip/`), read at launch and written on
+every change. Rust owns the file: the window calls commands and never writes it directly. A
+missing file means defaults. An unreadable or invalid file is logged and Snip uses the
+defaults, so a bad file can never stop Snip from launching. Unknown fields are ignored, so an
+older build can read a newer file.
+
+| Setting    | Default | Values                                                   |
+| ---------- | ------- | -------------------------------------------------------- |
+| Hotkey     | `⌘⇧2`   | One or more of ⌘ ⌃ ⌥ plus one key; ⇧ alone is not enough |
+| Delimiters | `$…$`   | `$…$`, `\[…\]`, `$$…$$`, none (§6)                       |
+
+**Changing the hotkey.** The user clicks the hotkey field and presses the new combination.
+Rust validates it, registers the new shortcut, and only then unregisters the old one and
+saves. If the new one is invalid or taken by another app, the old hotkey stays active and the
+window says why. The menu item's shortcut label follows the setting.
+
+**Why no tauri-plugin-store or UI framework.** Two settings do not justify either. A serde
+struct keeps validation in Rust, where it is unit-tested next to the code that uses it, and
+the window is one form in plain TypeScript. Both can be revisited if the window grows.
+
+**Tests.** Rust: settings load/save (missing, corrupt and partial files), hotkey validation.
+Vitest: turning a key event into a shortcut string. Manual: QA.md M5 section.
