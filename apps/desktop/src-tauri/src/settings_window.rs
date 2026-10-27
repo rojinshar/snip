@@ -49,7 +49,7 @@ pub fn open(app: &AppHandle) {
     }
     let built = WebviewWindowBuilder::new(app, WINDOW_LABEL, WebviewUrl::default())
         .title("Snip Settings")
-        .inner_size(440.0, 520.0)
+        .inner_size(440.0, 490.0)
         .resizable(false)
         .maximizable(false)
         .minimizable(false)

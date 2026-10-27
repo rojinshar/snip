@@ -178,7 +178,11 @@ code {
 }
 
 .status {
-  min-height: 1.4em;
   margin: 0;
   color: var(--error);
+}
+
+/* Takes no space until there is an error to show. */
+.status:empty {
+  display: none;
 }
