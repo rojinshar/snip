@@ -9,8 +9,16 @@
   // The only public URL. workers.dev and per-version preview URLs are off.
   "routes": [{ "pattern": "api.snip.rojinsharma.com", "custom_domain": true }],
   "preview_urls": false,
-  // Limits (docs/beta-v1.md §5). Change here and deploy.
-  "vars": { "RATE_LIMIT_PER_MINUTE": "10", "DAILY_SPEND_CAP_USD": "2" },
-  // Secrets (set with `wrangler secret put`, never committed): GEMINI_API_KEY, DATABASE_URL.
+  // Limits and self-registration (docs/beta-v1.md §5, §15). Change here and deploy.
+  // REGISTRATION_OPEN "false" stops new installs from getting a key.
+  "vars": {
+    "RATE_LIMIT_PER_MINUTE": "10",
+    "DAILY_SPEND_CAP_USD": "2",
+    "REGISTRATION_OPEN": "true",
+    "REGISTRATION_QUOTA": "200",
+    "REGISTRATIONS_PER_IP_PER_DAY": "3",
+  },
+  // Secrets (set with `wrangler secret put`, never committed): GEMINI_API_KEY, DATABASE_URL,
+  // REGISTRATION_SECRET (random, 16+ characters; keys the HMAC of registering IPs).
   // Local `wrangler dev` reads them from .dev.vars.
 }

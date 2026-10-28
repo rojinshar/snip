@@ -53,7 +53,8 @@ enum Failure {
     Capture(String),
     Image(String),
     Api(ApiError),
-    /// The API wants a key and none is saved; a rejected key stays `Api(invalid_key)`.
+    /// The API wants a key, none is saved, and registering one failed; a rejected key stays
+    /// `Api(invalid_key)`.
     NoAccessKey,
     Clipboard(String),
 }
@@ -104,6 +105,7 @@ pub fn run() {
             app.manage(SettingsState::new(settings_path, current, snip_item));
             app.manage(updates::UpdateState::new(updates_item));
             updates::start_background_checks(app.handle());
+            register_in_background(app.handle());
             settings_window::set_up_open_at_login(app.handle());
             if settings_window::register_current_hotkey(app.handle()).is_err() {
                 notify(
@@ -305,9 +307,7 @@ fn recognize_capture(
     timings.resized = prepared.resized;
 
     let request_started = Instant::now();
-    let access_key = settings_window::access_key_path(app)
-        .ok()
-        .and_then(|path| access_key::load(&path));
+    let access_key = load_or_register_key(app);
     let recognition = app
         .state::<SnipState>()
         .api
@@ -330,6 +330,27 @@ fn recognize_capture(
         Ok(()) => SnipResult::Copied { text },
         Err(error) => SnipResult::Failed(Failure::Clipboard(error.to_string())),
     }
+}
+
+/// The saved access key, or one registered for this install (docs/beta-v1.md §15). The local
+/// API answers `registration_closed` and needs no key, so development is unaffected.
+fn load_or_register_key(app: &AppHandle) -> Option<String> {
+    let path = settings_window::access_key_path(app).ok()?;
+    access_key::load_or_register(&path, || {
+        app.state::<SnipState>()
+            .api
+            .register()
+            .map(|registration| registration.key)
+    })
+}
+
+/// Registers right after launch, so the first snip doesn't wait for it and Settings already
+/// shows the quota. If this fails (offline at launch), the first snip tries again.
+fn register_in_background(app: &AppHandle) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        load_or_register_key(&app);
+    });
 }
 
 /// Shows "…" next to the menu-bar icon while waiting for recognition.
@@ -435,8 +456,8 @@ fn notification_for(result: &SnipResult) -> Option<(String, String)> {
             _ => message("Recognition unavailable", "Snip couldn't read it right now. Try again."),
         },
         SnipResult::Failed(Failure::NoAccessKey) => message(
-            "Snip needs your access key",
-            "Paste the key from your invite in Settings.",
+            "Snip isn't set up yet",
+            "It couldn't get free snips for this Mac. Try again later, or paste an access key in Settings.",
         ),
         SnipResult::Failed(Failure::Api(ApiError::Unreachable(_))) => {
             message("Snip couldn't reach the server", "Check your internet connection and try again.")
@@ -576,7 +597,7 @@ mod tests {
         );
         assert_eq!(
             notification_for(&missing).unwrap().0,
-            "Snip needs your access key"
+            "Snip isn't set up yet"
         );
     }
 

@@ -1,4 +1,4 @@
-import { createHash, randomInt } from 'node:crypto';
+import { createHash, createHmac, randomInt } from 'node:crypto';
 
 const PREFIX = 'snip_';
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyz234567'; // RFC 4648 base32, lower case
@@ -19,4 +19,12 @@ export function hashAccessKey(key: string): string {
 /** The last four characters, enough to tell keys apart in `keys:list`. */
 export function accessKeyHint(key: string): string {
   return key.slice(-4);
+}
+
+/**
+ * What `registrations` stores instead of the IP address: its hex HMAC-SHA-256. Keyed with a
+ * secret, because a plain hash of an IPv4 address is undone by trying all 2^32 of them.
+ */
+export function hashIp(ip: string, secret: string): string {
+  return createHmac('sha256', secret).update(ip).digest('hex');
 }

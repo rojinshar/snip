@@ -247,3 +247,49 @@ Measured before the change (4 rendered test images, production chain): a prose s
 theorem statement both fell back to 3.8 Flash (3.6–4.9 s) and returned `\text{}`-wrapped
 output; a paragraph passed as one formula. Old apps ignore `kind` and keep wrapping, so they
 need the update.
+
+## 15. Self-registration: no invite needed
+
+Emailing keys by hand made every new user wait on the author, and pasting a key into Settings
+was a step people skip. The app now gets its own key.
+
+**Flow:** when Snip has no saved key, at launch and again before a snip if launch didn't
+manage it, it calls `POST /v1/register`, saves the key it gets back to the same `access-key`
+file, and goes on. No email, no waitlist, no Settings visit. The Settings key field stays for
+keys made with `npm run keys` (the author's, or a tester given a bigger quota). A pasted key
+replaces the registered one.
+
+```
+POST /v1/register         (no body, no Authorization)
+  201 { "key": "snip_…", "quota": 200, "used": 0, "resetsAt": "2026-12-01T00:00:00Z" }
+  429 { "error": "registration_limited", "message": "…" }
+  403 { "error": "registration_closed",  "message": "…" }   (switched off, or local dev)
+```
+
+**Why keys stay:** the quota and the per-minute rate limit are counted per key. Without one
+the server can only tell callers apart by IP, which a dorm or a campus shares.
+
+**Abuse limits:**
+
+| Limit                     | Rule                                                        | Config                         |
+| ------------------------- | ----------------------------------------------------------- | ------------------------------ |
+| New keys per IP           | At most 3 per IP in 24 hours                                | `REGISTRATIONS_PER_IP_PER_DAY` |
+| Quota of a registered key | 200 successful snips per month, like an invited tester      | `REGISTRATION_QUOTA`           |
+| Off switch                | `REGISTRATION_OPEN=false` answers `403 registration_closed` | `REGISTRATION_OPEN`            |
+| Spending cap (unchanged)  | All recognition stops for the day at $2                     | `DAILY_SPEND_CAP_USD`          |
+
+Worst case, someone farms keys from many IPs until the spending cap is hit and Snip says
+"busy" until midnight UTC: $2, not a bill. The off switch and the cap are both a
+`wrangler.jsonc` change and a deploy.
+
+**IP addresses:** the IP is never stored. The `registrations` table keeps an HMAC-SHA-256 of
+it, keyed with the `REGISTRATION_SECRET` Worker secret so the hash can't be reversed by
+trying every IPv4 address, and rows older than 24 hours are deleted on the next
+registration. The IP comes from Cloudflare's `CF-Connecting-IP`, which clients cannot set.
+
+**Database:** `access_keys.email` becomes optional, and `source` records `invite` (made with
+`npm run keys`) or `app` (self-registered).
+
+**Not done:** attributing a registration to the Reddit post it came from. The download link
+can't carry the `?ref=` tag into the app without tracking downloads, which the privacy page
+rules out. Accounts (OAuth) come later and will adopt the install's key, so nobody loses usage.

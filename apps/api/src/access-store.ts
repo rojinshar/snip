@@ -14,10 +14,23 @@ export interface SnipRecord {
   readonly ms: number;
 }
 
+/** A key the app registers for itself (docs/beta-v1.md §15). */
+export interface NewRegistration {
+  readonly keyHash: string;
+  readonly keyHint: string;
+  readonly monthlyQuota: number;
+  /** HMAC of the caller's IP address; the address itself is never stored. */
+  readonly ipHash: string;
+  /** Registrations allowed from one IP in 24 hours. */
+  readonly maxPerIp: number;
+}
+
 export interface AccessStore {
   /** Null when no key has this hash. */
   usage(keyHash: string): Promise<KeyUsage | null>;
   record(snip: SnipRecord): Promise<void>;
+  /** The new key's id, or null when this IP has used up its registrations for the day. */
+  register(registration: NewRegistration): Promise<number | null>;
 }
 
 // Postgres counts and numerics arrive as strings over Neon's HTTP driver.
@@ -71,6 +84,35 @@ export function createNeonAccessStore(databaseUrl: string): AccessStore {
         VALUES (${snip.keyId}, ${snip.status}, ${snip.engine ?? null}, ${snip.inputTokens},
                 ${snip.outputTokens}, ${snip.costUsd}, ${snip.ms})
       `;
+    },
+
+    async register(registration) {
+      // One statement: count this IP's recent registrations, insert the key only if under the
+      // limit, log the registration, and drop log rows older than a day. Two requests at the
+      // same instant can both pass the count; one extra key is acceptable.
+      const rows = await sql`
+        WITH pruned AS (
+          DELETE FROM registrations WHERE created_at < now() - interval '1 day'
+        ),
+        recent AS (
+          SELECT count(*) AS n FROM registrations
+          WHERE ip_hash = ${registration.ipHash}
+            AND created_at >= now() - interval '1 day'
+        ),
+        new_key AS (
+          INSERT INTO access_keys (key_hash, key_hint, monthly_quota, source)
+          SELECT ${registration.keyHash}, ${registration.keyHint}, ${registration.monthlyQuota},
+                 'app'
+          WHERE (SELECT n FROM recent) < ${registration.maxPerIp}
+          RETURNING id
+        ),
+        logged AS (
+          INSERT INTO registrations (ip_hash) SELECT ${registration.ipHash} FROM new_key
+        )
+        SELECT id FROM new_key
+      `;
+      const row = rows[0];
+      return row === undefined ? null : z.coerce.number().parse(row.id);
     },
   };
 }

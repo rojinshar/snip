@@ -2,9 +2,9 @@ import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { KeyUsage } from '../src/access.ts';
-import type { AccessStore, SnipRecord } from '../src/access-store.ts';
+import type { AccessStore, NewRegistration, SnipRecord } from '../src/access-store.ts';
 import { type AccessControl, MAX_IMAGE_BYTES, createApp } from '../src/app.ts';
-import { hashAccessKey } from '../src/keys.ts';
+import { hashAccessKey, hashIp } from '../src/keys.ts';
 import type { RecognizeResult, Recognizer } from '../src/recognize.ts';
 import { JPEG, PNG } from './helpers.ts';
 
@@ -31,18 +31,30 @@ const usage = (overrides: Partial<KeyUsage> = {}): KeyUsage => ({
   ...overrides,
 });
 
-/** In-memory AccessStore: one known key, and every recorded row kept for assertions. */
+/**
+ * In-memory AccessStore: one known key, every recorded row kept for assertions, and
+ * registrations counted per IP hash like the real per-IP limit.
+ */
 function fakeStore(known: KeyUsage | null = usage()) {
   const records: SnipRecord[] = [];
+  const registrations: NewRegistration[] = [];
   const store: AccessStore = {
     usage: (keyHash) => Promise.resolve(keyHash === hashAccessKey(KEY) ? known : null),
     record: (snip) => {
       records.push(snip);
       return Promise.resolve();
     },
+    register: (registration) => {
+      const fromIp = registrations.filter((r) => r.ipHash === registration.ipHash).length;
+      if (fromIp >= registration.maxPerIp) return Promise.resolve(null);
+      registrations.push(registration);
+      return Promise.resolve(100 + registrations.length);
+    },
   };
-  return { store, records };
+  return { store, records, registrations };
 }
+
+const REGISTRATION = { monthlyQuota: 200, perIpPerDay: 3, secret: 'test-secret-0123456789' };
 
 function setup(
   options: { result?: RecognizeResult | Error; access?: Omit<AccessControl, 'limits'> } = {},
@@ -319,6 +331,74 @@ describe('GET /v1/me', () => {
   it('reports no quota when access keys are off (local development)', async () => {
     const res = await request(setup().app).get('/v1/me').expect(200);
     expect(res.body).toEqual({ quota: null, used: null, resetsAt: null });
+  });
+});
+
+describe('POST /v1/register', () => {
+  it('creates an app key and returns it once, with its quota', async () => {
+    const { store, registrations } = fakeStore();
+    const { app, lines } = setup({ access: { store, registration: REGISTRATION } });
+
+    const res = await request(app)
+      .post('/v1/register')
+      .set('cf-connecting-ip', '203.0.113.7')
+      .expect(201);
+
+    expect(res.body).toEqual({
+      key: expect.stringMatching(/^snip_[a-z2-7]{26}$/) as string,
+      quota: 200,
+      used: 0,
+      resetsAt: '2026-11-01T00:00:00.000Z',
+    });
+    const key = (res.body as { key: string }).key;
+    expect(registrations).toEqual([
+      {
+        keyHash: hashAccessKey(key),
+        keyHint: key.slice(-4),
+        monthlyQuota: 200,
+        ipHash: hashIp('203.0.113.7', REGISTRATION.secret),
+        maxPerIp: 3,
+      },
+    ]);
+    // Neither the key nor the IP reaches the logs.
+    expect(lines).toEqual([expect.objectContaining({ path: '/v1/register', keyId: 101 })]);
+    expect(JSON.stringify(lines)).not.toContain(key);
+    expect(JSON.stringify(lines)).not.toContain('203.0.113.7');
+  });
+
+  it('allows a few registrations per IP a day, then answers 429', async () => {
+    const { store } = fakeStore();
+    const { app } = setup({ access: { store, registration: REGISTRATION } });
+    const register = (ip: string) => request(app).post('/v1/register').set('cf-connecting-ip', ip);
+
+    for (let i = 0; i < 3; i++) await register('203.0.113.7').expect(201);
+    const limited = await register('203.0.113.7').expect(429);
+    expect(limited.body).toEqual({
+      error: 'registration_limited',
+      message: 'Too many new installs from this network today. Try again tomorrow.',
+    });
+    await register('198.51.100.2').expect(201);
+  });
+
+  it('is closed when registration is off or access keys are off', async () => {
+    const { store } = fakeStore();
+    const closed = {
+      error: 'registration_closed',
+      message: "New installs can't sign up right now.",
+    };
+    const off = await request(setup({ access: { store } }).app)
+      .post('/v1/register')
+      .expect(403);
+    expect(off.body).toEqual(closed);
+    await request(setup().app).post('/v1/register').expect(403, closed);
+  });
+
+  it('turns a database failure into a 500', async () => {
+    const { store } = fakeStore();
+    const broken = { ...store, register: () => Promise.reject(new Error('neon down')) };
+    await request(setup({ access: { store: broken, registration: REGISTRATION } }).app)
+      .post('/v1/register')
+      .expect(500);
   });
 });
 
