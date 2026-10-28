@@ -20,6 +20,11 @@ tauri-plugin-notification = "2"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-updater = "2"
 objc2-service-management = { version = "0.3.2", default-features = false, features = ["std", "SMAppService", "objc2", "objc2-foundation"] }
+# Notification permission (the first-run window asks for it up front).
+objc2-user-notifications = { version = "0.3.2", default-features = false, features = ["std", "block2", "UNUserNotificationCenter", "UNNotificationSettings"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSError"] }
+objc2 = "0.6"
+block2 = "0.6"
 # Blocking HTTP client: snips already run on a worker thread.
 ureq = "3"
 serde = { version = "1", features = ["derive"] }

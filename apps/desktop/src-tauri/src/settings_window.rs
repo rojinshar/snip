@@ -40,6 +40,16 @@ impl SettingsState {
     fn lock(&self) -> MutexGuard<'_, Settings> {
         self.current.lock().unwrap_or_else(PoisonError::into_inner)
     }
+
+    /// Changes and saves the settings; on a save failure, nothing changes.
+    pub fn update(&self, change: impl FnOnce(&mut Settings)) -> std::io::Result<()> {
+        let mut current = self.lock();
+        let mut next = current.clone();
+        change(&mut next);
+        settings::save(&self.path, &next)?;
+        *current = next;
+        Ok(())
+    }
 }
 
 /// Opens the settings window, or focuses it if it is already open.

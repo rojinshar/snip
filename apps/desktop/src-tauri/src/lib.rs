@@ -8,10 +8,12 @@ mod format;
 mod image_prep;
 mod login_item;
 mod metrics;
+mod notification_access;
 mod permissions;
 mod settings;
 mod settings_window;
 mod updates;
+mod welcome_window;
 
 use std::fs;
 use std::process::Command;
@@ -106,6 +108,7 @@ pub fn run() {
             app.manage(updates::UpdateState::new(updates_item));
             updates::start_background_checks(app.handle());
             register_in_background(app.handle());
+            welcome_window::start(app.handle());
             settings_window::set_up_open_at_login(app.handle());
             if settings_window::register_current_hotkey(app.handle()).is_err() {
                 notify(
@@ -129,8 +132,20 @@ pub fn run() {
             settings_window::get_version,
             settings_window::get_open_at_login,
             settings_window::set_open_at_login,
+            welcome_window::get_setup_status,
+            welcome_window::request_notifications,
+            welcome_window::open_notification_settings,
+            welcome_window::request_screen_recording,
+            welcome_window::restart_snip,
+            welcome_window::finish_setup,
         ])
         .on_window_event(|window, event| {
+            // Only the user closing it: quitting or restarting Snip doesn't send this.
+            if window.label() == welcome_window::WINDOW_LABEL
+                && matches!(event, tauri::WindowEvent::CloseRequested { .. })
+            {
+                welcome_window::on_close_requested(window.app_handle());
+            }
             // Closing the window mid-recording must not leave Snip without a hotkey.
             if window.label() == settings_window::WINDOW_LABEL
                 && matches!(event, tauri::WindowEvent::Destroyed)

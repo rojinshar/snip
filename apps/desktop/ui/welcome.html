@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to Snip</title>
+    <script type="module" src="/src/welcome.ts"></script>
+  </head>
+  <body class="welcome">
+    <main>
+      <ol class="dots" aria-hidden="true">
+        <li data-dot="welcome"></li>
+        <li data-dot="notifications"></li>
+        <li data-dot="screen"></li>
+        <li data-dot="done"></li>
+      </ol>
+
+      <section data-step="welcome" hidden>
+        <p class="mark" aria-hidden="true">∫</p>
+        <h1>Welcome to Snip</h1>
+        <p>
+          Press <kbd class="hotkey-label"></kbd> anywhere, drag a box over an equation, and the
+          LaTeX is on your clipboard.
+        </p>
+        <p class="hint">Two quick permissions and you're ready.</p>
+        <div class="actions">
+          <button type="button" class="primary" data-action="start">Get started</button>
+        </div>
+      </section>
+
+      <section data-step="notifications" hidden>
+        <h1>Know when it's copied</h1>
+        <p>Snip shows a notification when the LaTeX is on your clipboard.</p>
+        <p id="notifications-state" class="state" role="status" aria-live="polite"></p>
+        <div class="actions">
+          <button type="button" class="link" data-action="skip-notifications">Skip</button>
+          <button id="notifications-button" type="button" class="primary"></button>
+        </div>
+      </section>
+
+      <section data-step="screen" hidden>
+        <h1>Let Snip see the equation</h1>
+        <p>
+          macOS asks before an app can capture the screen. Snip only captures the area you select,
+          and only when you press the hotkey.
+        </p>
+        <ol id="screen-steps" class="steps" hidden>
+          <li>Turn on <strong>Snip</strong> in the list that just opened.</li>
+          <li>When macOS asks, choose <strong>Quit &amp; Reopen</strong>.</li>
+          <li>Snip comes right back here.</li>
+        </ol>
+        <p id="screen-state" class="state" role="status" aria-live="polite"></p>
+        <div class="actions">
+          <button id="restart-button" type="button" class="link" data-action="restart" hidden>
+            Restart Snip
+          </button>
+          <button id="screen-button" type="button" class="primary" data-action="screen">
+            Allow Screen Recording
+          </button>
+        </div>
+      </section>
+
+      <section data-step="done" hidden>
+        <p class="mark" aria-hidden="true">✓</p>
+        <h1>You're all set</h1>
+        <p>
+          Press <kbd class="hotkey-label"></kbd>, drag a box over an equation, then paste anywhere.
+        </p>
+        <p class="hint">Snip lives in your menu bar as ∫. Settings and updates are there too.</p>
+        <p id="done-notice" class="hint notice" hidden>
+          Notifications are off, so look for the ✓ next to ∫ after each snip. You can turn them on
+          in System Settings → Notifications → Snip.
+        </p>
+        <div class="actions">
+          <button type="button" class="primary" data-action="finish">Done</button>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
