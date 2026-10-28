@@ -1,5 +1,4 @@
-//! Client for the Snip API's `POST /v1/recognize` (contracts: docs/desktop-v0.md §5.2 and
-//! docs/beta-v1.md §6).
+//! Client for the Snip API (contracts: docs/desktop-v0.md §5.2, docs/beta-v1.md §6 and §15).
 
 use std::fmt;
 use std::time::Duration;
@@ -74,6 +73,12 @@ pub struct Usage {
     pub resets_at: Option<String>,
 }
 
+/// `POST /v1/register`: a key of this install's own, so Snip works without an invite.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct Registration {
+    pub key: String,
+}
+
 pub struct ApiClient {
     base_url: String,
     agent: ureq::Agent,
@@ -128,6 +133,13 @@ impl ApiClient {
         parse_json(status, &body)
     }
 
+    /// Asks for a new key. Errors include `registration_limited` (too many from this network
+    /// today) and `registration_closed` (switched off, or the local API).
+    pub fn register(&self) -> Result<Registration, ApiError> {
+        let (status, body) = read(self.agent.post(&self.endpoint("register")).send_empty())?;
+        parse_json(status, &body)
+    }
+
     fn endpoint(&self, name: &str) -> String {
         format!("{}/v1/{name}", self.base_url)
     }
@@ -162,7 +174,7 @@ pub fn parse_response(status: u16, body: &str) -> Result<Recognition, ApiError> 
 }
 
 fn parse_json<T: serde::de::DeserializeOwned>(status: u16, body: &str) -> Result<T, ApiError> {
-    if status == 200 {
+    if (200..300).contains(&status) {
         return serde_json::from_str(body)
             .map_err(|error| ApiError::BadResponse(error.to_string()));
     }
@@ -252,6 +264,22 @@ mod tests {
     }
 
     #[test]
+    fn parses_a_registration_and_its_errors() {
+        let created = r#"{"key":"snip_abcdefghijklmnopqrstuvwx23","quota":200,"used":0,"resetsAt":"2026-11-01T00:00:00.000Z"}"#;
+        assert_eq!(
+            parse_json::<Registration>(201, created),
+            Ok(Registration {
+                key: "snip_abcdefghijklmnopqrstuvwx23".into()
+            })
+        );
+        let limited = r#"{"error":"registration_limited","message":"…"}"#;
+        assert!(matches!(
+            parse_json::<Registration>(429, limited),
+            Err(ApiError::Server { status: 429, ref code, .. }) if code == "registration_limited"
+        ));
+    }
+
+    #[test]
     fn rejects_bodies_outside_the_contract() {
         assert!(matches!(
             parse_response(200, "<html>"),
@@ -303,5 +331,9 @@ mod tests {
             "http://127.0.0.1:8790/v1/recognize"
         );
         assert_eq!(client.endpoint("me"), "http://127.0.0.1:8790/v1/me");
+        assert_eq!(
+            client.endpoint("register"),
+            "http://127.0.0.1:8790/v1/register"
+        );
     }
 }

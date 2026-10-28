@@ -1,19 +1,25 @@
-//! The tester's access key (docs/beta-v1.md §4), kept in its own file in the app config
-//! directory, readable only by the user (mode 0600) and never in settings.json.
+//! The access key (docs/beta-v1.md §4), kept in its own file in the app config directory,
+//! readable only by the user (mode 0600) and never in settings.json. Without one, Snip
+//! registers a key of its own (§15); a key pasted in Settings replaces it.
 //!
 //! Not the Keychain: with ad-hoc signed builds macOS asks for permission on every read, and
 //! the key is revocable and quota-limited, so a private file is the better trade-off until
 //! builds are signed with a Developer ID.
 
+use std::fmt::Display;
 use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, PoisonError};
 
 pub const FILE_NAME: &str = "access-key";
 
 const PREFIX: &str = "snip_";
 const RANDOM_LEN: usize = 26;
+
+/// Held while registering, so launch and a first snip can't both register a key.
+static REGISTERING: Mutex<()> = Mutex::new(());
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum KeyError {
@@ -72,6 +78,36 @@ pub fn load(path: &Path) -> Option<String> {
             None
         }
     }
+}
+
+/// The saved key, or a newly registered one, saved before it is returned. None when there is
+/// no key and registering failed (offline, limited, or closed); the caller goes on without
+/// one. A key that registered but couldn't be saved is still returned, for this snip.
+pub fn load_or_register<E: Display>(
+    path: &Path,
+    register: impl FnOnce() -> Result<String, E>,
+) -> Option<String> {
+    let _registering = REGISTERING.lock().unwrap_or_else(PoisonError::into_inner);
+    if let Some(key) = load(path) {
+        return Some(key);
+    }
+    let key = match register().map(|key| normalize(&key)) {
+        Ok(Ok(key)) => key,
+        Ok(Err(_)) => {
+            log::warn!("registration returned a malformed key");
+            return None;
+        }
+        Err(error) => {
+            log::info!("could not register a key: {error}");
+            return None;
+        }
+    };
+    if let Err(error) = save(path, &key) {
+        log::error!("could not save the registered key: {error:?}");
+    } else {
+        log::info!("registered access key {}", hint(&key));
+    }
+    Some(key)
 }
 
 /// Writes atomically, with the file created as 0600 so no other user can read it.
@@ -162,6 +198,42 @@ mod tests {
         let mode = fs::metadata(&path).unwrap().permissions().mode() & 0o777;
         assert_eq!(mode, 0o600);
         assert!(!path.with_extension("tmp").exists());
+    }
+
+    #[test]
+    fn an_existing_key_is_used_without_registering() {
+        let (_dir, path) = key_path();
+        save(&path, KEY).unwrap();
+        let key = load_or_register(&path, || -> Result<String, String> {
+            panic!("must not register")
+        });
+        assert_eq!(key, Some(KEY.to_string()));
+    }
+
+    #[test]
+    fn without_a_key_it_registers_and_saves_one() {
+        let (_dir, path) = key_path();
+        let key = load_or_register(&path, || Ok::<_, String>(format!("{KEY}\n")));
+        assert_eq!(key, Some(KEY.to_string()));
+        assert_eq!(load(&path), Some(KEY.to_string()));
+        let again = load_or_register(&path, || -> Result<String, String> {
+            panic!("already registered")
+        });
+        assert_eq!(again, Some(KEY.to_string()));
+    }
+
+    #[test]
+    fn a_failed_or_malformed_registration_leaves_no_key() {
+        let (_dir, path) = key_path();
+        assert_eq!(
+            load_or_register(&path, || Err("registration_limited")),
+            None
+        );
+        assert_eq!(
+            load_or_register(&path, || Ok::<_, String>("not a key".into())),
+            None
+        );
+        assert_eq!(load(&path), None);
     }
 
     #[test]
