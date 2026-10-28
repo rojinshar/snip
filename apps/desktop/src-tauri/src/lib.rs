@@ -8,7 +8,7 @@ mod format;
 mod image_prep;
 mod login_item;
 mod metrics;
-mod notification_access;
+mod notifications;
 mod permissions;
 mod settings;
 mod settings_window;
@@ -486,8 +486,14 @@ fn notification_for(result: &SnipResult) -> Option<(String, String)> {
     }
 }
 
-/// Shows a notification; an empty body shows the title alone.
+/// Shows a notification; an empty body shows the title alone. Release builds use the
+/// UserNotifications framework (notifications.rs); the plugin is only the fallback for
+/// development builds, which aren't app bundles. Never mix the two in a bundled app: macOS
+/// then refuses the plugin's notifications.
 pub(crate) fn notify(app: &AppHandle, title: &str, body: &str) {
+    if notifications::show(title, body) {
+        return;
+    }
     let mut builder = app.notification().builder().title(title);
     if !body.is_empty() {
         builder = builder.body(body);

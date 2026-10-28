@@ -118,9 +118,10 @@ async function restart(): Promise<void> {
 }
 
 const actions: Record<string, () => void | Promise<void>> = {
-  start: async () => {
-    const current = status ?? (await refresh());
-    show(current.notifications === 'on' ? stepAfterNotifications(current) : 'notifications');
+  // Always notifications next, before Screen Recording: that step restarts Snip, and an
+  // earlier version skipped straight to it when macOS already reported notifications on.
+  start: () => {
+    show('notifications');
   },
   'skip-notifications': async () => {
     show(stepAfterNotifications(await refresh()));

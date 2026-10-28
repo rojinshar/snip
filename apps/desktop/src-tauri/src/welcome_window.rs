@@ -6,7 +6,7 @@ use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
 use serde::Serialize;
 
-use crate::notification_access::{self, NotificationAccess};
+use crate::notifications::{self, NotificationAccess};
 use crate::permissions;
 use crate::settings::SetupState;
 use crate::settings_window::SettingsState;
@@ -51,7 +51,7 @@ pub fn start(app: &AppHandle) {
         match on_launch(
             setup,
             permissions::has_screen_recording_access(),
-            notification_access::status(),
+            notifications::status(),
         ) {
             OnLaunch::Open => open(&app),
             OnLaunch::MarkDone => set_setup(&app, SetupState::Done),
@@ -107,7 +107,7 @@ pub struct SetupStatus {
 
 #[tauri::command]
 pub async fn get_setup_status(app: AppHandle) -> SetupStatus {
-    let notifications = blocking(notification_access::status).await;
+    let notifications = blocking(notifications::status).await;
     SetupStatus {
         notifications,
         screen_recording: permissions::has_screen_recording_access(),
@@ -118,12 +118,12 @@ pub async fn get_setup_status(app: AppHandle) -> SetupStatus {
 /// Shows macOS's notification request (first time only) and returns the outcome.
 #[tauri::command]
 pub async fn request_notifications() -> NotificationAccess {
-    blocking(notification_access::request).await
+    blocking(notifications::request).await
 }
 
 #[tauri::command]
 pub fn open_notification_settings() {
-    open_url(notification_access::SETTINGS_URL);
+    open_url(notifications::SETTINGS_URL);
 }
 
 /// Puts Snip in the Screen Recording list (macOS's own prompt, first time only) and opens

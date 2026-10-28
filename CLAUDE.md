@@ -465,22 +465,22 @@ Apple silicon only (`aarch64`); no Intel/universal build yet. Minimum macOS 13.
 
 ## 10. The desktop app in detail (`apps/desktop/src-tauri/src`)
 
-| File                     | Responsibility                                                                                                                   |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| `lib.rs`                 | App setup, tray menu, hotkey handler, snip pipeline, notifications (`notification_for`), ✓/! tray marks, background registration |
-| `capture.rs`             | `/usr/sbin/screencapture -i` (exits 0 on Esc, with no file = Cancelled)                                                          |
-| `image_prep.rs`          | Downscale so the long edge is ≤ `MAX_EDGE` 2000 px, re-encode PNG                                                                |
-| `api.rs`                 | Blocking `ureq` client (45 s timeout): `recognize`, `me`, `register`. Any 2xx is success                                         |
-| `access_key.rs`          | Key file (0600, atomic write), format check, `load_or_register`                                                                  |
-| `welcome_window.rs`      | First-run window (§10.1): launch decision, setup commands, `SetupState` progress                                                 |
-| `notification_access.rs` | Notification permission via Apple's UserNotifications framework: status, request, System Settings URL                            |
-| `settings.rs`            | `settings.json`: `hotkey` (default `Cmd+Shift+Digit2`), `delimiters`, `openAtLoginSetUp`, `setup`                                |
-| `settings_window.rs`     | Tauri commands for the Settings window (key status and usage, hotkey, delimiters, open at login, version)                        |
-| `updates.rs`             | Auto-update (§9.3)                                                                                                               |
-| `login_item.rs`          | Open at login via `SMAppService` (objc2-service-management)                                                                      |
-| `permissions.rs`         | Screen Recording check and request (CoreGraphics preflight)                                                                      |
-| `format.rs`              | `clipboard_text` (wrap math in delimiters, paste text as is), usage line, dates                                                  |
-| `metrics.rs`             | Appends one JSON line per snip to `~/Library/Logs/com.rojinsharma.snip/snips.jsonl` (timings only)                               |
+| File                 | Responsibility                                                                                                                   |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `lib.rs`             | App setup, tray menu, hotkey handler, snip pipeline, notifications (`notification_for`), ✓/! tray marks, background registration |
+| `capture.rs`         | `/usr/sbin/screencapture -i` (exits 0 on Esc, with no file = Cancelled)                                                          |
+| `image_prep.rs`      | Downscale so the long edge is ≤ `MAX_EDGE` 2000 px, re-encode PNG                                                                |
+| `api.rs`             | Blocking `ureq` client (45 s timeout): `recognize`, `me`, `register`. Any 2xx is success                                         |
+| `access_key.rs`      | Key file (0600, atomic write), format check, `load_or_register`                                                                  |
+| `welcome_window.rs`  | First-run window (§10.1): launch decision, setup commands, `SetupState` progress                                                 |
+| `notifications.rs`   | All notifications via Apple's UserNotifications framework: show, permission status and request, foreground delegate (§10.2)      |
+| `settings.rs`        | `settings.json`: `hotkey` (default `Cmd+Shift+Digit2`), `delimiters`, `openAtLoginSetUp`, `setup`                                |
+| `settings_window.rs` | Tauri commands for the Settings window (key status and usage, hotkey, delimiters, open at login, version)                        |
+| `updates.rs`         | Auto-update (§9.3)                                                                                                               |
+| `login_item.rs`      | Open at login via `SMAppService` (objc2-service-management)                                                                      |
+| `permissions.rs`     | Screen Recording check and request (CoreGraphics preflight)                                                                      |
+| `format.rs`          | `clipboard_text` (wrap math in delimiters, paste text as is), usage line, dates                                                  |
+| `metrics.rs`         | Appends one JSON line per snip to `~/Library/Logs/com.rojinsharma.snip/snips.jsonl` (timings only)                               |
 
 - **Files on the user's Mac:**
   - Settings: `~/Library/Application Support/com.rojinsharma.snip/settings.json`.
@@ -502,8 +502,9 @@ Apple silicon only (`aarch64`); no Intel/universal build yet. Minimum macOS 13.
   picked `\[…\]`.
 - **Open at login:** a release build adds itself once on first run (`openAtLoginSetUp`
   records that). After that it's the user's choice in Settings or System Settings.
-- **Notifications:** "Copied to clipboard" (title only). Errors are mapped to actionable text
-  in `notification_for`. Key problems also open Settings.
+- **Notifications:** "Copied to clipboard" (title only, deliberately no image; the author
+  wants it clean). Errors are mapped to actionable text in `notification_for`. Key problems
+  also open Settings. Everything goes through `notify()` in `lib.rs` → `notifications::show`.
 - **Hotkey rules:** must include ⌘, ⌃ or ⌥ (Shift alone would hijack typing).
 - **Old servers:** `Recognition.kind` defaults to `math` when missing.
 
@@ -522,10 +523,11 @@ Vite builds two pages, `index.html` (Settings) and `welcome.html`.
     notifications off see it once.
 - **Closing the window** (`CloseRequested`) counts as skip and marks it done. Quitting or
   restarting does not send `CloseRequested`.
-- **Notifications:** the notification plugin can show notifications but can't ask for or
-  read permission on macOS. `notification_access.rs` calls `UNUserNotificationCenter`
-  directly to request, and reads `authorizationStatus` plus `alertStyle` (style None counts
-  as off).
+- **Order:** Get started always goes to the notifications step, then Screen Recording (which
+  restarts Snip). An earlier build skipped the notifications step when macOS already reported
+  them on, which looked like Screen Recording coming first.
+- **Notifications:** `notifications.rs` requests permission and reads `authorizationStatus`
+  plus `alertStyle` (style None counts as off) through `UNUserNotificationCenter`.
   - Status meanings: `notAsked`, `on`, `off`, `unavailable`.
   - **Quirk:** outside an `.app` bundle (`tauri dev`, `cargo test`) the framework throws an
     Objective-C exception that would abort the app. The code checks that the executable path
@@ -545,6 +547,20 @@ Vite builds two pages, `index.html` (Settings) and `welcome.html`.
   to `"pending"`, and revoke a permission.
 
 ### 10.2 macOS permission and notification quirks (hard-won)
+
+- **Never mix notification APIs in the bundled app.** `tauri-plugin-notification` uses the
+  old `NSUserNotificationCenter`. Once the app has touched `UNUserNotificationCenter` (even
+  just to read permission), macOS refuses the old channel for good. Every notification
+  silently disappeared, and the system log showed
+  `usernoted: Denying message … LegacyConnection identifier: com.rojinsharma.snip`. So in
+  release builds everything goes through `notifications::show`. The plugin is only a fallback
+  for unbundled dev builds, where the framework can't run.
+  - `show` calls `requestAuthorization` first. That's instant once answered, and asks the
+    user if they skipped the first-run window. It then adds the request.
+  - A leaked `SnipNotificationDelegate` answers `willPresent` with banner, list and sound, so
+    banners still show while a Snip window is focused.
+  - To diagnose: `/usr/bin/log show --last 1h --predicate 'process == "usernoted" AND eventMessage CONTAINS "com.rojinsharma.snip"'`.
+    "Presenting" means it was shown; "Denying" means the channel was refused.
 
 - **Screen Recording** only takes effect after the app relaunches. The app opens System
   Settings at most once per launch and tells the user to choose **Restart Snip**.
@@ -639,7 +655,9 @@ Vite builds two pages, `index.html` (Settings) and `welcome.html`.
 - **0.7.0:** self-registration. No access key or invite needed (API `POST /v1/register`,
   migration 0003).
 - **0.7.1:** first-run window: welcome, notification permission, Screen Recording, auto
-  restart. A tester had notifications off and never saw "Copied to clipboard".
+  restart. A tester had notifications off and never saw "Copied to clipboard". All
+  notifications now go through UserNotifications. The first 0.7.1 build mixed the two APIs
+  and lost every notification; it was never published.
 
 ---
 
