@@ -1,11 +1,11 @@
 {
-  "version": "0.7.0",
-  "notes": "Snip now sets itself up: no access key or invite needed.",
-  "pub_date": "2026-10-28T01:46:50.379Z",
+  "version": "0.7.1",
+  "notes": "A setup window on first launch for notifications and Screen Recording; notifications are more reliable.",
+  "pub_date": "2026-10-28T13:57:35.755Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVScGlhYTAyQjhQdnBQeGdFT0pJSGEwcFgzV3U4a2EyKyt3U0J3NFNhQXI3MmFPOTBmY29PRnBCOTJleW5rdnh2YVQ3OXBkU2luRmo1VTNjT2lUT3lOQ0ZvUGtrTVBQdkFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzMTUxOTU2CWZpbGU6U25pcC5hcHAudGFyLmd6CXZlcnNpb246MC43LjAKRE1QSFc5ZStxbk1GWG04VzV5Qng1aDdyZWNDMWk1OEJxTDZ1WUMwYVBnT0J0bTdXMjFxeGx0U3FuWm9Fb3d3dFVEdVVVbjRjTGt3dG1meURjZHB5RGc9PQo=",
-      "url": "https://downloads.snip.rojinsharma.com/desktop/0.7.0/Snip_0.7.0_aarch64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVScGlhYTAyQjhQdms5b3g3bHc0clh5UURXeHhsWWxkMGZKSlRRMk1sNnJuZjhMVkljeTZxamIrRTlMTUFNYWlDVUIvRDFWR2liVUVtNjYwU2s1NU5SZlpOYTJYQ3NTOGdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzMTU4MjcyCWZpbGU6U25pcC5hcHAudGFyLmd6CXZlcnNpb246MC43LjEKcGkvYjgwVC9MWlBNMzk2MG1tM1VLRUx1WXpuS0VvRkdoR0lsN2U0WXoxbUJzY2xNWlpBaElSR2VXcGJHOUs4NVZzQUNQOERVS3hUVk9Ed3UrSGFBQkE9PQo=",
+      "url": "https://downloads.snip.rojinsharma.com/desktop/0.7.1/Snip_0.7.1_aarch64.app.tar.gz"
     }
   }
 }
