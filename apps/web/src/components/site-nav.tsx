@@ -4,8 +4,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type MouseEvent, useEffect, useState } from 'react';
 
-import { focusSignup } from '@/lib/signup';
-
 const sectionLinks = [
   { href: '/#how', label: 'How it works' },
   { href: '/#pricing', label: 'Pricing' },
@@ -13,9 +11,8 @@ const sectionLinks = [
 ];
 
 const linkClass = 'text-slate-600 hover:text-indigo-600';
-const activeClass = 'text-indigo-600';
 
-/** One nav for every page: the waitlist button leads, Download is always one click away. */
+/** One nav for every page, with Download one click away. */
 export function SiteNav() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
@@ -30,14 +27,6 @@ export function SiteNav() {
       window.removeEventListener('scroll', onScroll);
     };
   }, []);
-
-  // On the home page, scroll to the hero form and focus it; elsewhere, /#signup does that.
-  function onSignupClick(event: MouseEvent<HTMLAnchorElement>) {
-    if (pathname !== '/') return;
-    event.preventDefault();
-    window.history.replaceState(null, '', '#signup');
-    focusSignup(true);
-  }
 
   // Already on the home page, a link to "/" would do nothing, so scroll back to the top and
   // drop any #section from the address bar.
@@ -68,19 +57,9 @@ export function SiteNav() {
           <Link
             href="/download"
             aria-current={onDownload ? 'page' : undefined}
-            className={`inline-flex items-center gap-1.5 ${onDownload ? activeClass : linkClass}`}
-          >
-            Download
-            <span className="hidden rounded-full bg-indigo-50 px-1.5 py-0.5 text-xs font-medium text-indigo-700 md:inline">
-              beta
-            </span>
-          </Link>
-          <Link
-            href="/#signup"
-            onClick={onSignupClick}
             className="rounded-lg bg-indigo-600 px-3 py-1.5 text-white shadow-sm hover:bg-indigo-700 md:px-4 md:py-2"
           >
-            Get 200 free snips
+            Download free
           </Link>
         </div>
       </nav>

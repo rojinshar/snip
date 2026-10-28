@@ -8,7 +8,7 @@ import { DOWNLOAD_URL, LATEST_VERSION } from '@/lib/release';
 
 export const metadata: Metadata = {
   title: 'Download Snip for Mac (beta)',
-  description: 'Download the Snip private beta for Mac. You need the access key from your invite.',
+  description: 'Download Snip for Mac. Free during the beta: 200 snips a month, no sign-up.',
   alternates: { canonical: '/download' },
 };
 
@@ -29,20 +29,14 @@ export default function Download() {
       <main>
         <section className="mx-auto max-w-3xl px-6 pt-12 pb-16 text-center sm:pt-16">
           <p className="inline-block rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700">
-            Private beta
+            Beta
           </p>
           <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-5xl">
             Download Snip for Mac
           </h1>
-          <div className="mx-auto mt-6 max-w-md rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-4 text-slate-700">
-            You&apos;ll need your access key. It&apos;s in your invite email.{' '}
-            <span className="whitespace-nowrap">
-              No invite yet?{' '}
-              <Link href="/#signup" className="font-medium text-indigo-700 hover:text-indigo-800">
-                Join the waitlist →
-              </Link>
-            </span>
-          </div>
+          <p className="mx-auto mt-4 max-w-md text-lg text-slate-600">
+            Free during the beta: 200 snips a month. No account, no email.
+          </p>
           <DownloadAction url={DOWNLOAD_URL} />
           <p className="mt-3 text-sm text-slate-500">
             Version {LATEST_VERSION} · Apple silicon (M1 or later) · macOS 13 Ventura or later
@@ -74,7 +68,6 @@ export default function Download() {
                   <li>
                     Press <SnipHotkey />
                   </li>
-                  <li>Paste your access key into Settings</li>
                   <li>Allow Screen Recording when macOS asks</li>
                   <li>Choose Restart Snip from the ∫ menu</li>
                 </ol>
@@ -91,19 +84,12 @@ export default function Download() {
         </section>
 
         <section className="mx-auto max-w-3xl px-6 py-16 text-center">
-          <h2 className="text-2xl font-bold tracking-tight">No invite yet?</h2>
-          <p className="mt-3 text-slate-600">
-            We&apos;re letting people in from the waitlist in small groups.
-          </p>
-          <Link
-            href="/#signup"
-            className="mt-6 inline-block font-semibold text-indigo-600 hover:text-indigo-700"
-          >
-            Join the waitlist →
-          </Link>
-          <p className="mt-10 text-sm text-slate-500">
-            On an Intel Mac? It isn&apos;t supported yet; join the waitlist and we&apos;ll tell you
-            when it is. · Read how Snip handles your screenshots in the{' '}
+          <p className="text-sm text-slate-500">
+            On an Intel Mac? It isn&apos;t supported yet;{' '}
+            <Link href="/#signup" className="underline hover:text-slate-700">
+              leave your email
+            </Link>{' '}
+            and we&apos;ll tell you when it is. · Read how Snip handles your screenshots in the{' '}
             <Link href="/privacy" className="underline hover:text-slate-700">
               privacy note
             </Link>

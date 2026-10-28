@@ -61,10 +61,10 @@ export function DownloadAction({ url }: { url: string }) {
     return (
       <div className="mt-8">
         <p className="text-slate-700">
-          Snip is Mac-only for now. Join the waitlist and we&apos;ll tell you when Windows is ready.
+          Snip is Mac-only for now. Leave your email and we&apos;ll tell you when Windows is ready.
         </p>
         <Link href="/#signup" className={`mt-4 ${buttonClass}`}>
-          Join the waitlist
+          Notify me
         </Link>
       </div>
     );
