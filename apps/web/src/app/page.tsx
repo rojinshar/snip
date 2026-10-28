@@ -1,6 +1,5 @@
-import Link from 'next/link';
-
 import { Demo } from '@/components/demo';
+import { DownloadAction } from '@/components/download-action';
 import { FounderNote } from '@/components/founder-note';
 import { SiteFooter } from '@/components/site-chrome';
 import { WaitlistForm } from '@/components/waitlist-form';
@@ -10,6 +9,7 @@ import {
   MATHPIX_FREE_SNIPS_NO_EDU,
   MATHPIX_PRICING_URL,
 } from '@/lib/mathpix';
+import { DOWNLOAD_URL } from '@/lib/release';
 
 const comparison = [
   {
@@ -57,7 +57,7 @@ const plans = [
   {
     name: 'Free',
     price: '$0',
-    detail: '200 snips every month · sign-in required',
+    detail: '200 snips every month',
     highlight: false,
   },
   {
@@ -84,7 +84,7 @@ const faqs = [
   },
   {
     q: 'What happens to my screenshots?',
-    a: 'Only the area you select is sent for recognition, and neither the image nor the LaTeX is stored. We keep usage counts per access key, nothing more. Details are on the privacy page.',
+    a: 'Only the area you select is sent for recognition, and neither the image nor the LaTeX is stored. We keep usage counts per install, nothing more. Details are on the privacy page.',
   },
   {
     q: 'Which platforms?',
@@ -92,7 +92,7 @@ const faqs = [
   },
   {
     q: 'When can I use it?',
-    a: "The private beta is open to invited testers now. Join the waitlist and we'll email you an invite with your download link and access key.",
+    a: 'Now. Download the Mac app and it sets itself up with 200 free snips a month. No account, no email.',
   },
 ];
 
@@ -100,7 +100,7 @@ export default function Home() {
   return (
     <>
       <main>
-        <section id="signup" className="mx-auto max-w-5xl px-6 pt-12 pb-12 text-center sm:pt-20">
+        <section className="mx-auto max-w-5xl px-6 pt-12 pb-12 text-center sm:pt-20">
           <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight sm:text-6xl">
             Screenshot any equation. Paste LaTeX.
           </h1>
@@ -110,17 +110,11 @@ export default function Home() {
           <p className="mx-auto mt-2 max-w-2xl text-slate-500">
             Same hotkey. Same paste. LaTeX that compiles every time.
           </p>
-          <div className="mt-8 flex justify-center">
-            <WaitlistForm id="hero" />
+          <div className="mt-2">
+            <DownloadAction url={DOWNLOAD_URL} />
           </div>
           <p className="mt-3 text-sm text-slate-500">
-            Mac first · Join now for the $29 lifetime deal · Screenshots are never stored
-          </p>
-          <p className="mt-1 text-sm text-slate-500">
-            Already have an invite?{' '}
-            <Link href="/download" className="font-medium text-indigo-600 hover:text-indigo-700">
-              Download for Mac →
-            </Link>
+            Free · No sign-up · Apple silicon Macs · Screenshots are never stored
           </p>
         </section>
 
@@ -269,14 +263,18 @@ export default function Home() {
 
         <FounderNote />
 
-        <section id="join" className="border-t border-slate-200 bg-indigo-600">
+        <section id="signup" className="border-t border-slate-200 bg-indigo-600">
           <div className="mx-auto flex max-w-3xl flex-col items-center px-6 py-20 text-center text-white">
             <h2 className="text-3xl font-bold tracking-tight">Stop retyping equations.</h2>
-            <p className="mt-3 text-indigo-100">
-              200 free snips a month. Early sign-ups get the $29 lifetime deal.
-            </p>
-            <div className="mt-8 flex w-full justify-center rounded-xl bg-white p-4 text-left text-slate-900">
-              <WaitlistForm id="footer" />
+            <p className="mt-3 text-indigo-100">200 free snips a month. No sign-up.</p>
+            <div className="mt-8 w-full rounded-xl bg-white px-4 pt-2 pb-6 text-slate-900">
+              <DownloadAction url={DOWNLOAD_URL} />
+              <p className="mt-8 text-sm text-slate-600">
+                Want the $29 lifetime deal at launch, or Windows? Leave your email.
+              </p>
+              <div className="mt-3 flex justify-center text-left">
+                <WaitlistForm id="signup" />
+              </div>
             </div>
           </div>
         </section>

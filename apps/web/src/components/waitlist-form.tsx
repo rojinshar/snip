@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { type SubmitEvent, useEffect, useState } from 'react';
 
 import { refTracker } from '@/lib/ref';
@@ -21,7 +20,7 @@ export function WaitlistForm({ id }: { id: string }) {
     refTracker.capture(window.location.search);
   }, []);
 
-  // Arriving at /#signup (the nav button from another page) puts the cursor in the hero form.
+  // Arriving at /#signup (from the download page, say) puts the cursor in the form.
   useEffect(() => {
     if (`${id}-email` !== SIGNUP_INPUT_ID) return;
     const onHash = () => {
@@ -65,14 +64,7 @@ export function WaitlistForm({ id }: { id: string }) {
     return (
       <div role="status" className="w-full max-w-md">
         <p className="rounded-lg bg-emerald-50 px-4 py-3 text-emerald-800">
-          You&apos;re on the list. We&apos;re inviting people in small groups and will email your
-          access key.
-        </p>
-        <p className="mt-2 text-sm text-slate-500">
-          Already have a key?{' '}
-          <Link href="/download" className="font-medium text-indigo-600 hover:text-indigo-700">
-            Download for Mac →
-          </Link>
+          You&apos;re on the list. We&apos;ll email you before launch, with the lifetime deal.
         </p>
       </div>
     );
@@ -109,7 +101,7 @@ export function WaitlistForm({ id }: { id: string }) {
         disabled={status.kind === 'submitting'}
         className="rounded-lg bg-indigo-600 px-5 py-3 font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
       >
-        {status.kind === 'submitting' ? 'Joining…' : 'Get 200 free snips'}
+        {status.kind === 'submitting' ? 'Joining…' : 'Notify me'}
       </button>
       {status.kind === 'error' && (
         <p role="alert" className="text-sm text-red-600 sm:basis-full">

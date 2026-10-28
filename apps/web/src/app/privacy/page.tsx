@@ -35,7 +35,7 @@ export default function Privacy() {
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>The area you select is sent for recognition and is not stored.</li>
             <li>The LaTeX you get back is not stored either.</li>
-            <li>We keep usage counts per access key, so free quotas and costs work.</li>
+            <li>We keep usage counts per install, so free quotas and costs work.</li>
             <li>No ads, no trackers, no cookies, and nothing is sold.</li>
           </ul>
         </div>
@@ -65,9 +65,15 @@ export default function Privacy() {
               LaTeX.
             </p>
             <p>
-              For each access key: the email address it was issued to and its monthly quota. For the
-              waitlist: your email address and, if you arrived from a link with a{' '}
-              <code className="font-mono text-sm">?ref=</code> tag, that tag.
+              For each access key: its monthly quota, and the email address it was issued to if it
+              was sent by email. For the waitlist: your email address and, if you arrived from a
+              link with a <code className="font-mono text-sm">?ref=</code> tag, that tag.
+            </p>
+            <p>
+              When you first open Snip, it gets an access key of its own, with no account or email.
+              To limit how many keys one network can create, we keep a scrambled code made from your
+              IP address for 24 hours, then delete it. The code can&apos;t be turned back into the
+              address, and the address itself is never stored.
             </p>
           </Section>
 

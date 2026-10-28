@@ -1,8 +1,8 @@
-/** The hero waitlist form, which /#signup and the nav button lead to. */
+/** The waitlist form at the bottom of the home page, which /#signup leads to. */
 export const SIGNUP_SECTION_ID = 'signup';
-export const SIGNUP_INPUT_ID = 'hero-email';
+export const SIGNUP_INPUT_ID = 'signup-email';
 
-/** Brings the hero form into view and puts the cursor in its email field. */
+/** Brings the waitlist form into view and puts the cursor in its email field. */
 export function focusSignup(scroll: boolean): void {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (scroll) {
