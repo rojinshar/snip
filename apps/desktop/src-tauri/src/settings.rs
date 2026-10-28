@@ -25,6 +25,21 @@ pub struct Settings {
     /// Set once Snip has added itself to login items on first run. After that the login
     /// item is the user's to change (here or in System Settings), so it is never re-added.
     pub open_at_login_set_up: bool,
+    /// Where the first-run window is (welcome_window.rs).
+    pub setup: SetupState,
+}
+
+/// Progress through the first-run window. Missing from settings written before 0.7.1, which
+/// reads as `Pending`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SetupState {
+    #[default]
+    Pending,
+    /// Sent to System Settings for Screen Recording, which only applies after a relaunch:
+    /// the window opens again on the next launch to finish.
+    AwaitingRestart,
+    Done,
 }
 
 impl Default for Settings {
@@ -33,6 +48,7 @@ impl Default for Settings {
             hotkey: DEFAULT_HOTKEY.into(),
             delimiters: Delimiters::default(),
             open_at_login_set_up: false,
+            setup: SetupState::Pending,
         }
     }
 }
@@ -168,6 +184,7 @@ mod tests {
             hotkey: "Ctrl+Alt+KeyL".into(),
             delimiters: Delimiters::DisplayBracket,
             open_at_login_set_up: true,
+            setup: SetupState::AwaitingRestart,
         };
         save(&path, &settings).unwrap();
         assert_eq!(load(&path), settings);
@@ -185,7 +202,8 @@ mod tests {
             serde_json::json!({
                 "hotkey": "Cmd+Shift+Digit2",
                 "delimiters": "inlineDollar",
-                "openAtLoginSetUp": false
+                "openAtLoginSetUp": false,
+                "setup": "pending"
             })
         );
     }

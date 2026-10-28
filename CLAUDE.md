@@ -6,7 +6,7 @@ rationale is in `docs/desktop-v0.md` (the app) and `docs/beta-v1.md` (hosting, k
 auto-update, self-registration). Keep this file current: when you change how something works,
 update the relevant section in the same commit.
 
-Last full review: 2026-10-28 (desktop 0.7.0).
+Last full review: 2026-10-28 (desktop 0.7.1).
 
 ---
 
@@ -472,7 +472,9 @@ Apple silicon only (`aarch64`); no Intel/universal build yet. Minimum macOS 13.
 | `image_prep.rs`      | Downscale so the long edge is ≤ `MAX_EDGE` 2000 px, re-encode PNG                                                                |
 | `api.rs`             | Blocking `ureq` client (45 s timeout): `recognize`, `me`, `register`. Any 2xx is success                                         |
 | `access_key.rs`      | Key file (0600, atomic write), format check, `load_or_register`                                                                  |
-| `settings.rs`        | `settings.json`: `hotkey` (default `Cmd+Shift+Digit2`), `delimiters`, `openAtLoginSetUp`                                         |
+| `welcome_window.rs`  | First-run window (§10.1): launch decision, setup commands, `SetupState` progress                                                 |
+| `notifications.rs`   | All notifications via Apple's UserNotifications framework: show, permission status and request, foreground delegate (§10.2)      |
+| `settings.rs`        | `settings.json`: `hotkey` (default `Cmd+Shift+Digit2`), `delimiters`, `openAtLoginSetUp`, `setup`                                |
 | `settings_window.rs` | Tauri commands for the Settings window (key status and usage, hotkey, delimiters, open at login, version)                        |
 | `updates.rs`         | Auto-update (§9.3)                                                                                                               |
 | `login_item.rs`      | Open at login via `SMAppService` (objc2-service-management)                                                                      |
@@ -500,12 +502,65 @@ Apple silicon only (`aarch64`); no Intel/universal build yet. Minimum macOS 13.
   picked `\[…\]`.
 - **Open at login:** a release build adds itself once on first run (`openAtLoginSetUp`
   records that). After that it's the user's choice in Settings or System Settings.
-- **Notifications:** "Copied to clipboard" (title only). Errors are mapped to actionable text
-  in `notification_for`. Key problems also open Settings.
+- **Notifications:** "Copied to clipboard" (title only, deliberately no image; the author
+  wants it clean). Errors are mapped to actionable text in `notification_for`. Key problems
+  also open Settings. Everything goes through `notify()` in `lib.rs` → `notifications::show`.
 - **Hotkey rules:** must include ⌘, ⌃ or ⌥ (Shift alone would hijack typing).
 - **Old servers:** `Recognition.kind` defaults to `math` when missing.
 
-### 10.1 macOS permission and notification quirks (hard-won)
+### 10.1 The first-run window (0.7.1)
+
+`welcome_window.rs` plus `ui/welcome.html`, `ui/src/welcome.ts` and `ui/src/setup-steps.ts`.
+Vite builds two pages, `index.html` (Settings) and `welcome.html`.
+
+- **Steps:** Welcome → Notifications → Screen Recording → (restart) → You're all set.
+- **When it opens:** on launch, decided by `on_launch` from `settings.setup`:
+  - `Done`: never opens.
+  - `AwaitingRestart`: opens, landing on "all set".
+  - `Pending` (the default, including settings written before 0.7.1) with both permissions
+    already granted: marked done silently, so existing happy users never see it.
+  - `Pending` with a permission missing: opens. This is how existing users with
+    notifications off see it once.
+- **Closing the window** (`CloseRequested`) counts as skip and marks it done. Quitting or
+  restarting does not send `CloseRequested`.
+- **Order:** Get started always goes to the notifications step, then Screen Recording (which
+  restarts Snip). An earlier build skipped the notifications step when macOS already reported
+  them on, which looked like Screen Recording coming first.
+- **Notifications:** `notifications.rs` requests permission and reads `authorizationStatus`
+  plus `alertStyle` (style None counts as off) through `UNUserNotificationCenter`.
+  - Status meanings: `notAsked`, `on`, `off`, `unavailable`.
+  - **Quirk:** outside an `.app` bundle (`tauri dev`, `cargo test`) the framework throws an
+    Objective-C exception that would abort the app. The code checks that the executable path
+    contains `.app/Contents/MacOS/` and returns `Unavailable` otherwise.
+  - While the notifications step is shown it polls every 1.5 s, so flipping the switch in
+    System Settings updates it live.
+- **Screen Recording:** the button calls `CGRequestScreenCaptureAccess` (which adds Snip to
+  the list and shows macOS's prompt the first time), opens the list, and sets
+  `setup = AwaitingRestart`.
+  - The window polls `CGPreflightScreenCaptureAccess` every 1.5 s and restarts Snip itself if
+    it turns true.
+  - Otherwise macOS's own **Quit & Reopen** prompt, or the window's **Restart Snip** button,
+    relaunches it. `AwaitingRestart` makes the window reopen on "all set".
+  - The permission only takes effect after a relaunch.
+- **The "all set" step** warns when notifications are off and points at the ✓ tray mark.
+- **To see the window again** on a machine: remove `"setup"` from `settings.json`, or set it
+  to `"pending"`, and revoke a permission.
+
+### 10.2 macOS permission and notification quirks (hard-won)
+
+- **Never mix notification APIs in the bundled app.** `tauri-plugin-notification` uses the
+  old `NSUserNotificationCenter`. Once the app has touched `UNUserNotificationCenter` (even
+  just to read permission), macOS refuses the old channel for good. Every notification
+  silently disappeared, and the system log showed
+  `usernoted: Denying message … LegacyConnection identifier: com.rojinsharma.snip`. So in
+  release builds everything goes through `notifications::show`. The plugin is only a fallback
+  for unbundled dev builds, where the framework can't run.
+  - `show` calls `requestAuthorization` first. That's instant once answered, and asks the
+    user if they skipped the first-run window. It then adds the request.
+  - A leaked `SnipNotificationDelegate` answers `willPresent` with banner, list and sound, so
+    banners still show while a Snip window is focused.
+  - To diagnose: `/usr/bin/log show --last 1h --predicate 'process == "usernoted" AND eventMessage CONTAINS "com.rojinsharma.snip"'`.
+    "Presenting" means it was shown; "Denying" means the channel was refused.
 
 - **Screen Recording** only takes effect after the app relaunches. The app opens System
   Settings at most once per launch and tells the user to choose **Restart Snip**.
@@ -599,6 +654,10 @@ Apple silicon only (`aarch64`); no Intel/universal build yet. Minimum macOS 13.
   - 6-hourly update checks
 - **0.7.0:** self-registration. No access key or invite needed (API `POST /v1/register`,
   migration 0003).
+- **0.7.1:** first-run window: welcome, notification permission, Screen Recording, auto
+  restart. A tester had notifications off and never saw "Copied to clipboard". All
+  notifications now go through UserNotifications. The first 0.7.1 build mixed the two APIs
+  and lost every notification; it was never published.
 
 ---
 
@@ -612,4 +671,3 @@ Apple silicon only (`aarch64`); no Intel/universal build yet. Minimum macOS 13.
 - **More platforms:** Windows, a Chrome extension, an Obsidian plugin, Intel/universal macOS
   builds.
 - **Handwriting and long multi-line equations:** "in testing" per the FAQ.
-- **A welcome window** on first launch (a deliberate "not now"; registration is silent).

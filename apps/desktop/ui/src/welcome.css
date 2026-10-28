@@ -1,0 +1,125 @@
+/* The first-run window (welcome.html), on top of the shared style.css. */
+
+body.welcome main {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 24px 32px 28px;
+  gap: 0;
+}
+
+.dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.dots li {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.dots li.current {
+  background: var(--accent);
+}
+
+[data-step] {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  text-align: center;
+}
+
+[data-step][hidden] {
+  display: none;
+}
+
+[data-step] p {
+  margin: 0 0 10px;
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.mark {
+  margin: 4px 0 8px;
+  color: var(--accent);
+  font-size: 40px;
+  line-height: 1;
+}
+
+kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel);
+  font: inherit;
+  letter-spacing: 0.05em;
+}
+
+.state {
+  min-height: 2.8em;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.state.ok {
+  color: #1f8f3a;
+}
+
+@media (prefers-color-scheme: dark) {
+  .state.ok {
+    color: #32d74b;
+  }
+}
+
+.steps {
+  margin: 4px auto 10px;
+  padding-left: 20px;
+  text-align: left;
+}
+
+.steps li {
+  margin-bottom: 4px;
+}
+
+.notice {
+  color: var(--text);
+}
+
+.actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+}
+
+.primary {
+  min-width: 160px;
+  padding: 7px 16px;
+  border: none;
+  border-radius: 7px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 500;
+}
+
+.primary:disabled {
+  opacity: 0.6;
+}
+
+.primary:focus-visible,
+.link:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 2px;
+}

@@ -54,7 +54,9 @@ const NO_KEY: AccessStatus = { hint: null, usage: null, problem: null };
 /** Shows the saved key's hint (`snip_…k3q7`, never the key) and its usage or problem. */
 function renderAccess(access: AccessStatus): void {
   keyState.textContent =
-    access.hint === null ? 'Not set. Paste the key from your invite.' : `Saved: ${access.hint}`;
+    access.hint === null
+      ? 'Not set yet. Snip gets one automatically when it’s online.'
+      : `Saved: ${access.hint}`;
   keyRemove.hidden = access.hint === null;
   keyUsage.textContent = access.problem ?? access.usage ?? '';
   keyUsage.classList.toggle('problem', access.problem !== null);

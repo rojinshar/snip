@@ -1,6 +1,6 @@
 [package]
 name = "snip-desktop"
-version = "0.7.0"
+version = "0.7.1"
 description = "Snip: screenshot any equation, paste LaTeX"
 edition = "2021"
 rust-version = "1.80"
@@ -20,6 +20,11 @@ tauri-plugin-notification = "2"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-updater = "2"
 objc2-service-management = { version = "0.3.2", default-features = false, features = ["std", "SMAppService", "objc2", "objc2-foundation"] }
+# Notifications go through Apple's UserNotifications framework (notifications.rs).
+objc2-user-notifications = { version = "0.3.2", default-features = false, features = ["std", "block2", "UNUserNotificationCenter", "UNNotificationSettings", "UNNotificationContent", "UNNotificationRequest", "UNNotificationTrigger", "UNNotification"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSError", "NSString", "NSUUID", "NSObject"] }
+objc2 = "0.6"
+block2 = "0.6"
 # Blocking HTTP client: snips already run on a worker thread.
 ureq = "3"
 serde = { version = "1", features = ["derive"] }
