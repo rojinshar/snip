@@ -6,7 +6,7 @@ import { env, waitUntil } from 'cloudflare:workers';
 import { z } from 'zod';
 
 import { createApp } from './app.ts';
-import { accessLimitsSchema } from './config.ts';
+import { accessLimitsSchema, registrationConfig } from './config.ts';
 import { createNeonAccessStore } from './access-store.ts';
 import { createJsonLogger } from './logger.ts';
 import { createGeminiRecognizer } from './recognizer.ts';
@@ -22,6 +22,12 @@ const workerEnvSchema = z
   .extend(accessLimitsSchema.shape);
 
 const config = workerEnvSchema.parse(env);
+const registration = registrationConfig(config);
+if (config.REGISTRATION_OPEN && !registration) {
+  console.error(
+    'REGISTRATION_OPEN is set but REGISTRATION_SECRET is missing; registration is closed',
+  );
+}
 
 createApp({
   recognizer: createGeminiRecognizer(config.GEMINI_API_KEY),
@@ -35,6 +41,7 @@ createApp({
       requestsPerMinute: config.RATE_LIMIT_PER_MINUTE,
       dailySpendCapUsd: config.DAILY_SPEND_CAP_USD,
     },
+    ...(registration ? { registration } : {}),
     // Write the usage row after responding, without the Worker ending first.
     defer: waitUntil,
   },

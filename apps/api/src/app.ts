@@ -12,7 +12,8 @@ import { type AccessDecision, type AccessLimits, decideAccess, quotaResetsAt } f
 import type { AccessStore } from './access-store.ts';
 import { bearerToken } from './auth.ts';
 import { detectImageType } from './image.ts';
-import { hashAccessKey } from './keys.ts';
+import type { RegistrationConfig } from './config.ts';
+import { accessKeyHint, generateAccessKey, hashAccessKey, hashIp } from './keys.ts';
 import type { Logger } from './logger.ts';
 import type { RecognizeErrorCode, RecognizeResult, Recognizer } from './recognize.ts';
 
@@ -23,6 +24,8 @@ type ApiErrorCode =
   | 'quota_exceeded'
   | 'rate_limited'
   | 'capacity'
+  | 'registration_limited'
+  | 'registration_closed'
   | 'invalid_image'
   | 'image_too_large'
   | 'internal_error'
@@ -33,6 +36,11 @@ const ERRORS: Readonly<Record<ApiErrorCode, { status: number; message: string }>
   quota_exceeded: { status: 429, message: "You've used this month's snips." },
   rate_limited: { status: 429, message: 'Too many snips at once. Wait a minute.' },
   capacity: { status: 503, message: 'Snip is busy right now. Try again later.' },
+  registration_limited: {
+    status: 429,
+    message: 'Too many new installs from this network today. Try again tomorrow.',
+  },
+  registration_closed: { status: 403, message: "New installs can't sign up right now." },
   invalid_image: { status: 400, message: 'Could not read that image.' },
   image_too_large: { status: 413, message: 'Image is over 10 MB.' },
   no_math_found: { status: 422, message: 'No equation found in the selection.' },
@@ -44,6 +52,8 @@ const ERRORS: Readonly<Record<ApiErrorCode, { status: number; message: string }>
 export interface AccessControl {
   readonly store: AccessStore;
   readonly limits: AccessLimits;
+  /** Omit to close self-registration (docs/beta-v1.md §15). */
+  readonly registration?: RegistrationConfig;
   /**
    * Keeps work running after the response is sent: Workers' `waitUntil`. Without it the
    * usage row is written in the background, which is fine in Node.
@@ -113,6 +123,37 @@ export function createApp(deps: AppDeps): Express {
     res.json({
       quota: usage.monthlyQuota,
       used: usage.usedThisMonth,
+      resetsAt: quotaResetsAt(clock()).toISOString(),
+    });
+  });
+
+  /**
+   * A key for an install that has none, so the app works without an invite. Limited per IP;
+   * the spending cap bounds what farmed keys can cost.
+   */
+  app.post('/v1/register', async (req: Request, res: Response) => {
+    const registration = access?.registration;
+    if (!access || !registration) {
+      sendError(res, 'registration_closed');
+      return;
+    }
+    const key = generateAccessKey();
+    const keyId = await access.store.register({
+      keyHash: hashAccessKey(key),
+      keyHint: accessKeyHint(key),
+      monthlyQuota: registration.monthlyQuota,
+      ipHash: hashIp(clientIp(req), registration.secret),
+      maxPerIp: registration.perIpPerDay,
+    });
+    if (keyId === null) {
+      sendError(res, 'registration_limited');
+      return;
+    }
+    res.locals.keyId = keyId;
+    res.status(201).json({
+      key,
+      quota: registration.monthlyQuota,
+      used: 0,
       resetsAt: quotaResetsAt(clock()).toISOString(),
     });
   });
@@ -221,6 +262,14 @@ export function createApp(deps: AppDeps): Express {
 function sendError(res: Response, code: ApiErrorCode, extra: Record<string, string> = {}): void {
   const { status, message } = ERRORS[code];
   res.status(status).json({ error: code, message, ...extra });
+}
+
+/**
+ * Cloudflare sets CF-Connecting-IP on every request and overwrites any value a client sends.
+ * The socket address is the fallback for the local Node server.
+ */
+function clientIp(req: Request): string {
+  return req.get('cf-connecting-ip') ?? req.socket.remoteAddress ?? 'unknown';
 }
 
 function sum(values: readonly number[]): number {

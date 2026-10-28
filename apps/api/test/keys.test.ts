@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { accessKeyHint, generateAccessKey, hashAccessKey } from '../src/keys.ts';
+import { accessKeyHint, generateAccessKey, hashAccessKey, hashIp } from '../src/keys.ts';
 
 describe('generateAccessKey', () => {
   it('makes snip_ plus 26 base32 characters, matching what the app accepts', () => {
@@ -24,5 +24,15 @@ describe('hashAccessKey', () => {
 describe('accessKeyHint', () => {
   it('is the last four characters', () => {
     expect(accessKeyHint('snip_abcdefghijklmnopqrstuvwx23')).toBe('wx23');
+  });
+});
+
+describe('hashIp', () => {
+  it('is a hex HMAC that depends on the secret, so it cannot be reversed without it', () => {
+    const hash = hashIp('203.0.113.7', 'secret-one');
+    expect(hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(hashIp('203.0.113.7', 'secret-one')).toBe(hash);
+    expect(hashIp('203.0.113.7', 'secret-two')).not.toBe(hash);
+    expect(hashIp('203.0.113.8', 'secret-one')).not.toBe(hash);
   });
 });

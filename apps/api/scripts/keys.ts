@@ -7,7 +7,8 @@
  *   npm run keys -- revoke --id 3
  *
  * Reads DATABASE_URL from the environment or the root .env. A new key is printed once and
- * only its hash is stored, so copy it when it is created.
+ * only its hash is stored, so copy it when it is created. Keys the app registered for itself
+ * (docs/beta-v1.md §15) are listed with source `app` and no email.
  */
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -54,7 +55,7 @@ async function main(): Promise<void> {
     }
     case 'list': {
       const rows = await sql`
-        SELECT k.id, k.key_hint, k.email, k.monthly_quota,
+        SELECT k.id, k.key_hint, k.source, k.email, k.monthly_quota,
                (SELECT count(*) FROM snips s
                  WHERE s.key_id = k.id AND s.status = 200
                    AND s.created_at >= date_trunc('month', now(), 'UTC')) AS used_this_month,
