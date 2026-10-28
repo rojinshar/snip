@@ -22,7 +22,9 @@ packages/
 
 ## Design docs
 
+- [CLAUDE.md](CLAUDE.md): how everything is built, deployed, released and operated, with quirks
 - [Desktop app v0](docs/desktop-v0.md)
+- [Beta v1](docs/beta-v1.md): hosting, access keys, quotas, auto-update, self-registration
 
 ## Requirements
 
