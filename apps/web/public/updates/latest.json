@@ -1,11 +1,11 @@
 {
-  "version": "0.6.0",
-  "notes": "Sentences with math paste cleanly, faster no-equation results, and Snip opens at login.",
-  "pub_date": "2026-10-27T20:32:35.005Z",
+  "version": "0.7.0",
+  "notes": "Snip now sets itself up: no access key or invite needed.",
+  "pub_date": "2026-10-28T01:46:50.379Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVScGlhYTAyQjhQdnZKMmJkbS9yc3JwQkhlRmFtY0hNMmZQZGQ1R3B4bkdrN2dLMlNRU0FGZ2EveWRFaTVYSG9nbnNGSGRnQlRxZEcyQzhlMEFYLzdvWjVRYmxFd1BCT1FJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzMTMzMDkzCWZpbGU6U25pcC5hcHAudGFyLmd6CXZlcnNpb246MC42LjAKaUs5RUN1M0tPZHZJWmFhNW5rSjQzOWdGV1NkaVdqTnJNZmNTcU5RaFNXenJxazREdlFsQU1pWVZ3UHd6cnYySTVJalZCam9vMmhUWVN6cURydGJXQ1E9PQo=",
-      "url": "https://downloads.snip.rojinsharma.com/desktop/0.6.0/Snip_0.6.0_aarch64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVScGlhYTAyQjhQdnBQeGdFT0pJSGEwcFgzV3U4a2EyKyt3U0J3NFNhQXI3MmFPOTBmY29PRnBCOTJleW5rdnh2YVQ3OXBkU2luRmo1VTNjT2lUT3lOQ0ZvUGtrTVBQdkFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzMTUxOTU2CWZpbGU6U25pcC5hcHAudGFyLmd6CXZlcnNpb246MC43LjAKRE1QSFc5ZStxbk1GWG04VzV5Qng1aDdyZWNDMWk1OEJxTDZ1WUMwYVBnT0J0bTdXMjFxeGx0U3FuWm9Fb3d3dFVEdVVVbjRjTGt3dG1meURjZHB5RGc9PQo=",
+      "url": "https://downloads.snip.rojinsharma.com/desktop/0.7.0/Snip_0.7.0_aarch64.app.tar.gz"
     }
   }
 }
